@@ -1,0 +1,209 @@
+use super::models::{Project, ProjectEnv, Snippet, ProjectKey};
+use anyhow::Result;
+use sqlx::SqlitePool;
+use uuid::Uuid;
+
+pub struct ProjectRepository {
+    pool: SqlitePool,
+}
+
+impl ProjectRepository {
+    pub fn new(pool: SqlitePool) -> Self {
+        Self { pool }
+    }
+
+    pub async fn create_project(&self, name: String, path: String, ssh_key_path: Option<String>) -> Result<Project> {
+        let id = Uuid::new_v4().to_string();
+        
+        sqlx::query("INSERT INTO projects (id, name, path, ssh_key_path, notes) VALUES (?, ?, ?, ?, ?)")
+            .bind(&id)
+            .bind(&name)
+            .bind(&path)
+            .bind(&ssh_key_path)
+            .bind(Option::<String>::None)
+            .execute(&self.pool)
+            .await?;
+
+        Ok(Project {
+            id,
+            name,
+            path,
+            ssh_key_path,
+            notes: None,
+        })
+    }
+
+    pub async fn get_project(&self, id: &str) -> Result<Option<Project>> {
+        let project = sqlx::query_as::<_, Project>("SELECT id, name, path, ssh_key_path, notes FROM projects WHERE id = ?")
+            .bind(id)
+            .fetch_optional(&self.pool)
+            .await?;
+        Ok(project)
+    }
+
+    pub async fn list_projects(&self) -> Result<Vec<Project>> {
+        let projects = sqlx::query_as::<_, Project>("SELECT id, name, path, ssh_key_path, notes FROM projects")
+            .fetch_all(&self.pool)
+            .await?;
+        Ok(projects)
+    }
+
+    pub async fn update_notes(&self, id: &str, notes: String) -> Result<()> {
+        sqlx::query("UPDATE projects SET notes = ? WHERE id = ?")
+            .bind(notes)
+            .bind(id)
+            .execute(&self.pool)
+            .await?;
+        Ok(())
+    }
+
+    pub async fn set_env_var(&self, project_id: &str, key: String, value: String) -> Result<()> {
+        let id = Uuid::new_v4().to_string();
+        
+        let mut tx = self.pool.begin().await?;
+        
+        sqlx::query("DELETE FROM project_envs WHERE project_id = ? AND key = ?")
+            .bind(project_id)
+            .bind(&key)
+            .execute(&mut *tx)
+            .await?;
+
+        sqlx::query("INSERT INTO project_envs (id, project_id, key, value) VALUES (?, ?, ?, ?)")
+            .bind(&id)
+            .bind(project_id)
+            .bind(&key)
+            .bind(&value)
+            .execute(&mut *tx)
+            .await?;
+
+        tx.commit().await?;
+        Ok(())
+    }
+
+    pub async fn get_project_envs(&self, project_id: &str) -> Result<Vec<ProjectEnv>> {
+        let envs = sqlx::query_as::<_, ProjectEnv>("SELECT id, project_id, key, value FROM project_envs WHERE project_id = ?")
+            .bind(project_id)
+            .fetch_all(&self.pool)
+            .await?;
+        Ok(envs)
+    }
+
+    pub async fn add_snippet(&self, project_id: String, label: String, command: String, description: Option<String>) -> Result<Snippet> {
+        let id = Uuid::new_v4().to_string();
+
+        sqlx::query("INSERT INTO project_snippets (id, project_id, label, command, description) VALUES (?, ?, ?, ?, ?)")
+            .bind(&id)
+            .bind(&project_id)
+            .bind(&label)
+            .bind(&command)
+            .bind(&description)
+            .execute(&self.pool)
+            .await?;
+
+        Ok(Snippet {
+            id,
+            project_id,
+            label,
+            command,
+            description,
+        })
+    }
+
+    pub async fn get_project_snippets(&self, project_id: &str) -> Result<Vec<Snippet>> {
+        let snippets = sqlx::query_as::<_, Snippet>("SELECT id, project_id, label, command, description FROM project_snippets WHERE project_id = ?")
+            .bind(project_id)
+            .fetch_all(&self.pool)
+            .await?;
+        Ok(snippets)
+    }
+    pub async fn update_project(&self, id: &str, name: String, path: String, key_path: Option<String>) -> Result<()> {
+        sqlx::query("UPDATE projects SET name = ?, path = ?, ssh_key_path = ? WHERE id = ?")
+            .bind(name)
+            .bind(path)
+            .bind(key_path)
+            .bind(id)
+            .execute(&self.pool)
+            .await?;
+        Ok(())
+    }
+
+    pub async fn delete_project(&self, id: &str) -> Result<()> {
+        let mut tx = self.pool.begin().await?;
+
+        // Manual cleanup if no CASCADE (better safe)
+        sqlx::query("DELETE FROM project_envs WHERE project_id = ?").bind(id).execute(&mut *tx).await?;
+        sqlx::query("DELETE FROM project_snippets WHERE project_id = ?").bind(id).execute(&mut *tx).await?;
+        sqlx::query("DELETE FROM projects WHERE id = ?").bind(id).execute(&mut *tx).await?;
+
+        tx.commit().await?;
+        Ok(())
+    }
+    pub async fn add_key(&self, project_id: String, name: String, key_reference: String) -> Result<ProjectKey> {
+        let id = Uuid::new_v4().to_string();
+
+        sqlx::query("INSERT INTO project_keys (id, project_id, name, key_reference) VALUES (?, ?, ?, ?)")
+            .bind(&id)
+            .bind(&project_id)
+            .bind(&name)
+            .bind(&key_reference)
+            .execute(&self.pool)
+            .await?;
+
+        // created_at is default current_timestamp
+        Ok(ProjectKey {
+            id,
+            project_id,
+            name,
+            key_reference,
+            created_at: String::new(), // Placeholder, typically we'd fetch or use time crate, but UI might not strictly need exact time immediately
+        })
+    }
+
+    pub async fn get_project_keys(&self, project_id: &str) -> Result<Vec<ProjectKey>> {
+        let keys = sqlx::query_as::<_, ProjectKey>("SELECT id, project_id, name, key_reference, created_at FROM project_keys WHERE project_id = ?")
+            .bind(project_id)
+            .fetch_all(&self.pool)
+            .await?;
+        Ok(keys)
+    }
+
+    pub async fn delete_key(&self, id: &str) -> Result<()> {
+        sqlx::query("DELETE FROM project_keys WHERE id = ?")
+            .bind(id)
+            .execute(&self.pool)
+            .await?;
+        Ok(())
+    }
+}
+
+#[cfg(test)]
+mod tests {
+    use super::*;
+    use sqlx::sqlite::SqlitePoolOptions;
+
+    #[tokio::test]
+    async fn test_project_crud() -> Result<()> {
+        let pool = SqlitePoolOptions::new()
+            .connect("sqlite::memory:")
+            .await?;
+            
+        // Run migrations
+        // sqlx::migrate! path is relative to Cargo.toml usually.
+        sqlx::migrate!("./migrations")
+            .run(&pool)
+            .await?;
+
+        let repo = ProjectRepository::new(pool);
+
+        // Create
+        let proj = repo.create_project("Test Project".into(), "/tmp/test".into(), None).await?;
+        assert_eq!(proj.name, "Test Project");
+
+        // Get
+        let found = repo.get_project(&proj.id).await?;
+        assert!(found.is_some());
+        assert_eq!(found.unwrap().id, proj.id);
+
+        Ok(())
+    }
+}
