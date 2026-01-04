@@ -175,3 +175,66 @@ pub async fn reveal_secret(
             e.to_string()
         })
 }
+
+// Notes
+#[command]
+pub async fn create_project_note(
+    pool: State<'_, SqlitePool>,
+    project_id: String,
+    title: String,
+    content: String,
+    color: String,
+) -> Result<crate::modules::projects::models::ProjectNote, String> {
+    let service = ProjectService::new(pool.inner().clone());
+    service.create_note(project_id, title, content, color)
+        .await
+        .map_err(|e| e.to_string())
+}
+
+#[command]
+pub async fn update_project_note(
+    pool: State<'_, SqlitePool>,
+    id: String,
+    title: String,
+    content: String,
+    color: String,
+) -> Result<(), String> {
+    let service = ProjectService::new(pool.inner().clone());
+    service.update_note(&id, title, content, color)
+        .await
+        .map_err(|e| e.to_string())
+}
+
+#[command]
+pub async fn delete_project_note(
+    pool: State<'_, SqlitePool>,
+    id: String,
+) -> Result<(), String> {
+    let service = ProjectService::new(pool.inner().clone());
+    service.delete_note(&id)
+        .await
+        .map_err(|e| e.to_string())
+}
+
+#[command]
+pub async fn get_project_notes(
+    pool: State<'_, SqlitePool>,
+    project_id: String,
+) -> Result<Vec<crate::modules::projects::models::ProjectNote>, String> {
+    let service = ProjectService::new(pool.inner().clone());
+    service.get_project_notes(&project_id)
+        .await
+        .map_err(|e| e.to_string())
+}
+
+#[command]
+pub async fn update_project_settings(
+    pool: State<'_, SqlitePool>,
+    id: String,
+    settings: String,
+) -> Result<(), String> {
+    let service = ProjectService::new(pool.inner().clone());
+    service.update_project_settings(&id, settings)
+        .await
+        .map_err(|e| e.to_string())
+}

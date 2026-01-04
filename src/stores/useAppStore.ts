@@ -14,6 +14,7 @@ interface AppState {
     updateProject: (id: string, name: string, path: string, sshKeyPath?: string) => Promise<void>;
     deleteProject: (id: string) => Promise<void>;
     updateProjectNotes: (id: string, notes: string) => Promise<void>;
+    updateProjectSettings: (id: string, settings: string) => Promise<void>;
     setActiveProject: (id: string | null) => void;
 }
 
@@ -100,6 +101,16 @@ export const useAppStore = create<AppState>((set) => ({
             set({ projects });
         } catch (e) {
             console.error("Failed to update notes", e);
+        }
+    },
+
+    updateProjectSettings: async (id, settings) => {
+        try {
+            await invokeCommand('update_project_settings', { id, settings });
+            const projects = await invokeCommand<Project[]>('list_projects');
+            set({ projects });
+        } catch (e) {
+            console.error("Failed to update settings", e);
         }
     },
 

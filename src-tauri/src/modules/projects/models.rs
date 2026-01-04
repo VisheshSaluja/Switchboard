@@ -8,6 +8,12 @@ pub struct Project {
     pub path: String,
     pub ssh_key_path: Option<String>,
     pub notes: Option<String>,
+    pub settings: Option<String>, // JSON string
+}
+
+#[derive(Debug, Clone, Serialize, Deserialize)]
+pub struct ProjectSettings {
+    pub note_labels: std::collections::HashMap<String, String>,
 }
 
 #[derive(Debug, Clone, Serialize, Deserialize, FromRow)]
@@ -35,4 +41,17 @@ pub struct ProjectKey {
     pub key_reference: String, // The key used in Vault
     #[sqlx(default)]
     pub created_at: String, // Sqlite stores as string/text usually
+}
+
+#[derive(Debug, Clone, Serialize, Deserialize, FromRow)]
+pub struct ProjectNote {
+    pub id: String,
+    pub project_id: String,
+    pub title: String,
+    pub content: String,
+    pub color: String,
+    #[sqlx(default)]
+    pub created_at: String,
+    #[sqlx(default)]
+    pub updated_at: String,
 }

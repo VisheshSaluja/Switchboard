@@ -1,4 +1,4 @@
-use super::models::{Project, ProjectEnv, Snippet, ProjectKey};
+use super::models::{Project, ProjectEnv, Snippet, ProjectKey, ProjectNote};
 use anyhow::Result;
 use sqlx::SqlitePool;
 use uuid::Uuid;
@@ -15,11 +15,12 @@ impl ProjectRepository {
     pub async fn create_project(&self, name: String, path: String, ssh_key_path: Option<String>) -> Result<Project> {
         let id = Uuid::new_v4().to_string();
         
-        sqlx::query("INSERT INTO projects (id, name, path, ssh_key_path, notes) VALUES (?, ?, ?, ?, ?)")
+        sqlx::query("INSERT INTO projects (id, name, path, ssh_key_path, notes, settings) VALUES (?, ?, ?, ?, ?, ?)")
             .bind(&id)
             .bind(&name)
             .bind(&path)
             .bind(&ssh_key_path)
+            .bind(Option::<String>::None)
             .bind(Option::<String>::None)
             .execute(&self.pool)
             .await?;
@@ -30,11 +31,12 @@ impl ProjectRepository {
             path,
             ssh_key_path,
             notes: None,
+            settings: None,
         })
     }
 
     pub async fn get_project(&self, id: &str) -> Result<Option<Project>> {
-        let project = sqlx::query_as::<_, Project>("SELECT id, name, path, ssh_key_path, notes FROM projects WHERE id = ?")
+        let project = sqlx::query_as::<_, Project>("SELECT id, name, path, ssh_key_path, notes, settings FROM projects WHERE id = ?")
             .bind(id)
             .fetch_optional(&self.pool)
             .await?;
@@ -42,7 +44,7 @@ impl ProjectRepository {
     }
 
     pub async fn list_projects(&self) -> Result<Vec<Project>> {
-        let projects = sqlx::query_as::<_, Project>("SELECT id, name, path, ssh_key_path, notes FROM projects")
+        let projects = sqlx::query_as::<_, Project>("SELECT id, name, path, ssh_key_path, notes, settings FROM projects")
             .fetch_all(&self.pool)
             .await?;
         Ok(projects)
@@ -51,6 +53,15 @@ impl ProjectRepository {
     pub async fn update_notes(&self, id: &str, notes: String) -> Result<()> {
         sqlx::query("UPDATE projects SET notes = ? WHERE id = ?")
             .bind(notes)
+            .bind(id)
+            .execute(&self.pool)
+            .await?;
+        Ok(())
+    }
+
+    pub async fn update_settings(&self, id: &str, settings: String) -> Result<()> {
+        sqlx::query("UPDATE projects SET settings = ? WHERE id = ?")
+            .bind(settings)
             .bind(id)
             .execute(&self.pool)
             .await?;
@@ -133,6 +144,7 @@ impl ProjectRepository {
         // Manual cleanup if no CASCADE (better safe)
         sqlx::query("DELETE FROM project_envs WHERE project_id = ?").bind(id).execute(&mut *tx).await?;
         sqlx::query("DELETE FROM project_snippets WHERE project_id = ?").bind(id).execute(&mut *tx).await?;
+        sqlx::query("DELETE FROM project_notes WHERE project_id = ?").bind(id).execute(&mut *tx).await?; // New: Delete notes
         sqlx::query("DELETE FROM projects WHERE id = ?").bind(id).execute(&mut *tx).await?;
 
         tx.commit().await?;
@@ -169,6 +181,56 @@ impl ProjectRepository {
 
     pub async fn delete_key(&self, id: &str) -> Result<()> {
         sqlx::query("DELETE FROM project_keys WHERE id = ?")
+            .bind(id)
+            .execute(&self.pool)
+            .await?;
+        Ok(())
+    }
+
+    pub async fn create_note(&self, project_id: String, title: String, content: String, color: String) -> Result<ProjectNote> {
+        let id = Uuid::new_v4().to_string();
+
+        sqlx::query("INSERT INTO project_notes (id, project_id, title, content, color) VALUES (?, ?, ?, ?, ?)")
+            .bind(&id)
+            .bind(&project_id)
+            .bind(&title)
+            .bind(&content)
+            .bind(&color)
+            .execute(&self.pool)
+            .await?;
+
+        Ok(ProjectNote {
+            id,
+            project_id,
+            title,
+            content,
+            color,
+            created_at: String::new(), 
+            updated_at: String::new(),
+        })
+    }
+
+    pub async fn get_project_notes(&self, project_id: &str) -> Result<Vec<ProjectNote>> {
+        let notes = sqlx::query_as::<_, ProjectNote>("SELECT id, project_id, title, content, color, created_at, updated_at FROM project_notes WHERE project_id = ? ORDER BY updated_at DESC")
+            .bind(project_id)
+            .fetch_all(&self.pool)
+            .await?;
+        Ok(notes)
+    }
+
+    pub async fn update_note(&self, id: &str, title: String, content: String, color: String) -> Result<()> {
+        sqlx::query("UPDATE project_notes SET title = ?, content = ?, color = ? WHERE id = ?")
+            .bind(title)
+            .bind(content)
+            .bind(color)
+            .bind(id)
+            .execute(&self.pool)
+            .await?;
+        Ok(())
+    }
+
+    pub async fn delete_note(&self, id: &str) -> Result<()> {
+        sqlx::query("DELETE FROM project_notes WHERE id = ?")
             .bind(id)
             .execute(&self.pool)
             .await?;

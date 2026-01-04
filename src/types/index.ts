@@ -4,6 +4,7 @@ export interface Project {
     path: string;
     ssh_key_path?: string;
     notes?: string;
+    settings?: string; // JSON string
 }
 
 export interface SshHostModel {
@@ -28,4 +29,18 @@ export interface ProjectKey {
     name: string;
     key_reference: string;
     created_at: string;
+}
+
+export interface ProjectNote {
+    id: string;
+    project_id: string;
+    title: string;
+    content: string;
+    color: string;
+    created_at: string;
+    updated_at: string;
+}
+
+export interface ProjectSettings {
+    note_labels: Record<string, string>;
 }

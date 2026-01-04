@@ -104,4 +104,25 @@ impl ProjectService {
         let _ = vault.delete_secret(key_reference); 
         self.repo.delete_key(id).await
     }
+    
+    // Notes (Advanced)
+    pub async fn create_note(&self, project_id: String, title: String, content: String, color: String) -> Result<super::models::ProjectNote> {
+        self.repo.create_note(project_id, title, content, color).await
+    }
+
+    pub async fn get_project_notes(&self, project_id: &str) -> Result<Vec<super::models::ProjectNote>> {
+        self.repo.get_project_notes(project_id).await
+    }
+
+    pub async fn update_note(&self, id: &str, title: String, content: String, color: String) -> Result<()> {
+        self.repo.update_note(id, title, content, color).await
+    }
+
+    pub async fn delete_note(&self, id: &str) -> Result<()> {
+        self.repo.delete_note(id).await
+    }
+
+    pub async fn update_project_settings(&self, id: &str, settings: String) -> Result<()> {
+        self.repo.update_settings(id, settings).await
+    }
 }

@@ -1,8 +1,8 @@
-import React from 'react';
-import type { Project } from '../../types';
+import React, { useEffect, useState, useMemo } from 'react';
+import type { Project, ProjectNote, ProjectSettings } from '../../types';
 import { Button } from '../ui/button';
 import { Card, CardContent, CardHeader, CardTitle } from '../ui/card';
-import { Terminal, ScrollText, Play, FolderOpen, Clock } from 'lucide-react';
+import { Terminal, ScrollText, Play, FolderOpen, Activity, Tag } from 'lucide-react';
 import { motion } from 'framer-motion';
 import { invokeCommand } from '../../lib/tauri';
 
@@ -11,7 +11,49 @@ interface OverviewPanelProps {
     onNavigate: (tab: string) => void;
 }
 
+const DEFAULT_LABELS: Record<string, string> = {
+    yellow: 'General',
+    blue: 'Idea',
+    green: 'Done',
+    red: 'Bug',
+    purple: 'Feature'
+};
+
+const COLORS = [
+    { id: 'yellow', bg: 'bg-yellow-50 dark:bg-yellow-950/30', border: 'border-yellow-200 dark:border-yellow-800', indicator: 'bg-yellow-400', text: 'text-yellow-600 dark:text-yellow-400' },
+    { id: 'blue', bg: 'bg-blue-50 dark:bg-blue-950/30', border: 'border-blue-200 dark:border-blue-800', indicator: 'bg-blue-400', text: 'text-blue-600 dark:text-blue-400' },
+    { id: 'green', bg: 'bg-green-50 dark:bg-green-950/30', border: 'border-green-200 dark:border-green-800', indicator: 'bg-green-400', text: 'text-green-600 dark:text-green-400' },
+    { id: 'red', bg: 'bg-red-50 dark:bg-red-950/30', border: 'border-red-200 dark:border-red-800', indicator: 'bg-red-400', text: 'text-red-600 dark:text-red-400' },
+    { id: 'purple', bg: 'bg-purple-50 dark:bg-purple-950/30', border: 'border-purple-200 dark:border-purple-800', indicator: 'bg-purple-400', text: 'text-purple-600 dark:text-purple-400' },
+];
+
 export const OverviewPanel: React.FC<OverviewPanelProps> = ({ project, onNavigate }) => {
+    const [notes, setNotes] = useState<ProjectNote[]>([]);
+
+    useEffect(() => {
+        invokeCommand<ProjectNote[]>('get_project_notes', { projectId: project.id })
+            .then(setNotes)
+            .catch(console.error);
+    }, [project.id]);
+
+    const labels = useMemo(() => {
+        if (!project.settings) return DEFAULT_LABELS;
+        try {
+            const parsed: ProjectSettings = JSON.parse(project.settings);
+            return { ...DEFAULT_LABELS, ...parsed.note_labels };
+        } catch (e) {
+            return DEFAULT_LABELS;
+        }
+    }, [project.settings]);
+
+    const noteStats = useMemo(() => {
+        const stats: Record<string, number> = {};
+        notes.forEach(note => {
+            stats[note.color] = (stats[note.color] || 0) + 1;
+        });
+        return stats;
+    }, [notes]);
+
     const handleLaunchTerminal = async () => {
         try {
             await invokeCommand('open_external_terminal', { path: project.path });
@@ -37,7 +79,7 @@ export const OverviewPanel: React.FC<OverviewPanelProps> = ({ project, onNavigat
                     </div>
                 </div>
 
-                {/* Quick Actions Grid - More Compact */}
+                {/* Quick Actions Grid */}
                 <div className="grid grid-cols-3 gap-3">
                     <motion.div whileHover={{ y: -1 }} transition={{ duration: 0.2 }}>
                         <Card className="hover:border-primary/50 transition-colors cursor-pointer group shadow-sm" onClick={handleLaunchTerminal}>
@@ -66,10 +108,10 @@ export const OverviewPanel: React.FC<OverviewPanelProps> = ({ project, onNavigat
                                 </CardTitle>
                             </CardHeader>
                             <CardContent className="p-4 pt-0">
-                                <p className="text-xs text-muted-foreground mb-3 line-clamp-1">
-                                    {project.notes ? "View documentation" : "No notes yet"}
+                                <p className="text-xs text-muted-foreground mb-3">
+                                    {notes.length === 0 ? "No notes yet" : `${notes.length} note${notes.length === 1 ? '' : 's'} recorded`}
                                 </p>
-                                <Button variant="secondary" size="sm" className="w-full h-8 text-xs">Open Notes</Button>
+                                <Button variant="secondary" size="sm" className="w-full h-8 text-xs">Manage Notes</Button>
                             </CardContent>
                         </Card>
                     </motion.div>
@@ -90,20 +132,42 @@ export const OverviewPanel: React.FC<OverviewPanelProps> = ({ project, onNavigat
                     </motion.div>
                 </div>
 
-                {/* Activity / Stats Mockup */}
+                {/* Project Status / Health */}
                 <Card className="border-border/50 bg-card/50 shadow-sm">
                     <CardHeader className="p-4 py-3 border-b border-border/50">
                         <CardTitle className="text-xs font-semibold uppercase tracking-wider text-muted-foreground flex items-center gap-2">
-                            <Clock className="w-3.5 h-3.5" />
-                            Recent Activity
+                            <Activity className="w-3.5 h-3.5" />
+                            Project Status
                         </CardTitle>
                     </CardHeader>
                     <CardContent className="p-0">
-                        <div className="flex flex-col divide-y divide-border/50">
-                             <div className="p-3 text-xs text-muted-foreground text-center italic">
-                                No activity recorded in this session.
+                        {notes.length === 0 ? (
+                             <div className="p-8 text-xs text-muted-foreground text-center italic flex flex-col items-center gap-2">
+                                <Tag className="w-8 h-8 opacity-20" />
+                                Create notes with labels to see project health stats here.
                             </div>
-                        </div>
+                        ) : (
+                            <div className="grid grid-cols-2 md:grid-cols-5 divide-x divide-border/50">
+                                {COLORS.map(c => {
+                                    const count = noteStats[c.id] || 0;
+                                    const label = labels[c.id] || c.id;
+                                    
+                                    return (
+                                        <div key={c.id} className="p-4 flex flex-col items-center justify-center gap-1 hover:bg-muted/50 transition-colors">
+                                            <div className={`text-2xl font-bold ${c.text}`}>
+                                                {count}
+                                            </div>
+                                            <div className="flex items-center gap-1.5">
+                                                <div className={`w-2 h-2 rounded-full ${c.indicator}`} />
+                                                <span className="text-xs font-medium text-muted-foreground capitalize truncate max-w-[80px]" title={label}>
+                                                    {label}
+                                                </span>
+                                            </div>
+                                        </div>
+                                    )
+                                })}
+                            </div>
+                        )}
                     </CardContent>
                 </Card>
             </div>
