@@ -1,5 +1,5 @@
 import React, { useEffect, useState } from 'react';
-import { Play, Loader2, FileJson, AlertCircle } from 'lucide-react';
+import { Play, Loader2, FileJson } from 'lucide-react';
 import { Button } from '../ui/button';
 import { invokeCommand } from '../../lib/tauri';
 import { toast } from 'sonner';
