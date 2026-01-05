@@ -4,22 +4,16 @@ import { Sidebar } from '../Sidebar';
 
 interface AppLayoutProps {
   children: React.ReactNode;
-  activeView: 'projects' | 'ssh';
-  onChangeView: (view: 'projects' | 'ssh') => void;
   onNewProject: (mode: 'create' | 'import' | 'clone') => void;
 }
 
 export const AppLayout: React.FC<AppLayoutProps> = ({ 
   children, 
-  activeView, 
-  onChangeView, 
   onNewProject 
 }) => {
   return (
     <div className="flex h-screen bg-background font-sans text-foreground selection:bg-primary/20">
       <Sidebar 
-        activeView={activeView}
-        onChangeView={onChangeView}
         onNewProject={onNewProject}
       />
 
@@ -30,7 +24,7 @@ export const AppLayout: React.FC<AppLayoutProps> = ({
             <div className="flex items-center text-sm text-muted-foreground gap-2">
                 <TermIcon className="w-4 h-4" />
                 <span>/</span>
-                <span className="text-foreground font-medium capitalize">{activeView}</span>
+                <span className="text-foreground font-medium capitalize">Projects</span>
             </div>
          </header>
 

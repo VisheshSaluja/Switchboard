@@ -1,5 +1,5 @@
 import React from 'react';
-import { LayoutGrid, Server, Plus, FolderInput, GitBranch, ChevronUp } from 'lucide-react';
+import { LayoutGrid, Plus, FolderInput, GitBranch, ChevronUp } from 'lucide-react';
 import { cn } from '../lib/utils';
 import {
   DropdownMenu,
@@ -9,12 +9,10 @@ import {
 } from "./ui/dropdown-menu"
 
 interface SidebarProps {
-  activeView: 'projects' | 'ssh';
-  onChangeView: (view: 'projects' | 'ssh') => void;
   onNewProject: (mode: 'create' | 'import' | 'clone') => void;
 }
 
-export const Sidebar: React.FC<SidebarProps> = ({ activeView, onChangeView, onNewProject }) => {
+export const Sidebar: React.FC<SidebarProps> = ({ onNewProject }) => {
   return (
     <div className="w-64 border-r border-border bg-card flex flex-col h-full">
       <div className="p-6">
@@ -25,30 +23,12 @@ export const Sidebar: React.FC<SidebarProps> = ({ activeView, onChangeView, onNe
       </div>
 
       <nav className="flex-1 px-4 space-y-1">
-        <button
-          onClick={() => onChangeView('projects')}
-          className={cn(
-            "w-full flex items-center gap-3 px-3 py-2 text-sm font-medium rounded-md transition-colors",
-            activeView === 'projects' 
-              ? "bg-accent text-accent-foreground" 
-              : "text-muted-foreground hover:text-foreground hover:bg-accent/50"
-          )}
+        <div
+          className="w-full flex items-center gap-3 px-3 py-2 text-sm font-medium rounded-md bg-accent text-accent-foreground"
         >
           <LayoutGrid className="w-4 h-4" />
           Projects
-        </button>
-        <button
-          onClick={() => onChangeView('ssh')}
-          className={cn(
-            "w-full flex items-center gap-3 px-3 py-2 text-sm font-medium rounded-md transition-colors",
-            activeView === 'ssh' 
-              ? "bg-accent text-accent-foreground" 
-              : "text-muted-foreground hover:text-foreground hover:bg-accent/50"
-          )}
-        >
-          <Server className="w-4 h-4" />
-          SSH Hosts
-        </button>
+        </div>
       </nav>
 
       <div className="p-4 border-t border-border">

@@ -1,7 +1,6 @@
 import { useEffect, useState } from 'react';
 import { AppLayout } from './components/layout/AppLayout';
 import { ProjectCard } from './components/ProjectCard';
-import { SSHHostList } from './components/SSHHostList';
 import { ProjectWorkspace } from './components/Workspace/ProjectWorkspace';
 import { useAppStore } from './stores/useAppStore';
 import { Button } from './components/ui/button';
@@ -16,7 +15,6 @@ import { DropdownMenu, DropdownMenuContent, DropdownMenuItem, DropdownMenuTrigge
 import { useMemo } from 'react';
 
 function App() {
-  const [view, setView] = useState<'projects' | 'ssh'>('projects');
   const [activeTerminalProject, setActiveTerminalProject] = useState<string | null>(null);
   
   // Search & Sort State
@@ -25,15 +23,12 @@ function App() {
 
   const { 
     projects, 
-    hosts, 
     fetchProjects, 
-    fetchHosts,
     createProject 
   } = useAppStore();
 
   useEffect(() => {
     fetchProjects();
-    fetchHosts();
   }, []);
 
   const handleLaunch = (id: string) => {
@@ -154,12 +149,9 @@ function App() {
   return (
     <>
         <AppLayout 
-            activeView={view} 
-            onChangeView={setView} 
             onNewProject={handleNewProject}
         >
-          {view === 'projects' ? (
-            projects.length > 0 ? (
+            {projects.length > 0 ? (
               <div className="space-y-6">
                   {/* Toolbar */}
                   <div className="flex flex-col sm:flex-row gap-4 items-center justify-between">
@@ -236,10 +228,7 @@ function App() {
                         Create Workspace
                     </Button>
                 </div>
-            )
-          ) : (
-            <SSHHostList hosts={hosts} />
-          )}
+            )}
         </AppLayout>
         
         {activeTerminalProject && (
