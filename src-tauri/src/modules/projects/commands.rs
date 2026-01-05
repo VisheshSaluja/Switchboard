@@ -238,3 +238,40 @@ pub async fn update_project_settings(
         .await
         .map_err(|e| e.to_string())
 }
+
+// Git & FS
+#[command]
+pub async fn get_git_status(path: String) -> Result<Option<crate::modules::git::GitStatus>, String> {
+    crate::modules::git::get_git_status(&path).map_err(|e| e.to_string())
+}
+
+#[command]
+pub async fn git_clone(url: String, path: String) -> Result<(), String> {
+    crate::modules::git::clone_repo(&url, &path).map_err(|e| e.to_string())
+}
+
+#[command]
+pub async fn open_in_editor(path: String) -> Result<(), String> {
+    #[cfg(target_os = "macos")]
+    let cmd = "code"; // Default to VS Code
+    // You could make this configurable via settings in the future
+
+    std::process::Command::new(cmd)
+        .arg(&path)
+        .spawn()
+        .map_err(|e| e.to_string())?;
+    Ok(())
+}
+
+#[command]
+pub async fn reveal_in_finder(path: String) -> Result<(), String> {
+    #[cfg(target_os = "macos")]
+    std::process::Command::new("open")
+        .arg("-R")
+        .arg(&path)
+        .spawn()
+        .map_err(|e| e.to_string())?;
+    
+    // Linux/Windows implementation would go here
+    Ok(())
+}

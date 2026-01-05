@@ -9,6 +9,10 @@ pub struct Project {
     pub ssh_key_path: Option<String>,
     pub notes: Option<String>,
     pub settings: Option<String>, // JSON string
+    #[sqlx(default)]
+    pub created_at: String,
+    #[sqlx(default)]
+    pub updated_at: String,
 }
 
 #[derive(Debug, Clone, Serialize, Deserialize)]

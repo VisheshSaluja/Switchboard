@@ -1,10 +1,11 @@
 import React, { useEffect, useState, useMemo } from 'react';
-import type { Project, ProjectNote, ProjectSettings } from '../../types';
+import type { Project, ProjectNote, ProjectSettings, GitStatus } from '../../types';
 import { Button } from '../ui/button';
-import { Card, CardContent, CardHeader, CardTitle } from '../ui/card';
-import { Terminal, ScrollText, Play, FolderOpen, Activity, Tag } from 'lucide-react';
+import { Card, CardContent, CardHeader, CardTitle, CardDescription } from '../ui/card';
+import { Terminal, ScrollText, Play, FolderOpen, Activity, Tag, GitBranch, ArrowUp, ArrowDown, ExternalLink, RefreshCw } from 'lucide-react';
 import { motion } from 'framer-motion';
 import { invokeCommand } from '../../lib/tauri';
+import { toast } from 'sonner';
 
 interface OverviewPanelProps {
     project: Project;
@@ -29,12 +30,24 @@ const COLORS = [
 
 export const OverviewPanel: React.FC<OverviewPanelProps> = ({ project, onNavigate }) => {
     const [notes, setNotes] = useState<ProjectNote[]>([]);
+    const [gitStatus, setGitStatus] = useState<GitStatus | null>(null);
+    const [isGitLoading, setIsGitLoading] = useState(false);
 
     useEffect(() => {
         invokeCommand<ProjectNote[]>('get_project_notes', { projectId: project.id })
             .then(setNotes)
             .catch(console.error);
-    }, [project.id]);
+        
+        loadGitStatus();
+    }, [project.id, project.path]);
+
+    const loadGitStatus = () => {
+        setIsGitLoading(true);
+        invokeCommand<GitStatus | null>('get_git_status', { path: project.path })
+            .then(setGitStatus)
+            .catch(err => console.error("Git status failed", err))
+            .finally(() => setIsGitLoading(false));
+    };
 
     const labels = useMemo(() => {
         if (!project.settings) return DEFAULT_LABELS;
@@ -59,8 +72,44 @@ export const OverviewPanel: React.FC<OverviewPanelProps> = ({ project, onNavigat
             await invokeCommand('open_external_terminal', { path: project.path });
         } catch (e) {
             console.error(e);
+            toast.error("Failed to launch terminal");
         }
     };
+
+    const handleOpenEditor = async () => {
+        try {
+            await invokeCommand('open_in_editor', { path: project.path });
+            toast.success("Opening Editor...");
+        } catch (e) {
+            console.error(e);
+            toast.error("Failed to open editor");
+        }
+    };
+
+    const handleReveal = async () => {
+        try {
+            await invokeCommand('reveal_in_finder', { path: project.path });
+        } catch (e) {
+            console.error(e);
+            toast.error("Failed to reveal directory");
+        }
+    };
+
+    const handleOpenRemote = () => {
+        if (gitStatus?.remote_url) {
+            invokeCommand('open_external', { url: gitStatus.remote_url }).catch(console.error);
+            // Since we don't have open_external explicitly, we can use spawn or shell open
+            // but we can just assume user has browser
+            // Actually, let's use the shell open we already have or just generic open
+            // Re-using reveal_in_finder which uses 'open' on mac might work for URLs too?
+            // Safer to use proper method if exists, but for now let's try generic open or just console log if missing
+            // We'll use the 'open' command we implemented for finder, it maps to `open` on mac which opens URLs too.
+             invokeCommand('reveal_in_finder', { path: gitStatus.remote_url }).catch(e => {
+                 // Fallback if that fails, though `open` usually works.
+                 console.error("Failed to open remote", e);
+             });
+        }
+    }
 
     return (
         <div className="h-full w-full p-4 overflow-y-auto bg-muted/5 scrollbar-thin">
@@ -72,17 +121,20 @@ export const OverviewPanel: React.FC<OverviewPanelProps> = ({ project, onNavigat
                         <FolderOpen className="w-8 h-8 text-primary/80" />
                         <div>
                             <h1 className="text-2xl font-bold tracking-tight text-foreground">{project.name}</h1>
-                            <div className="text-xs text-muted-foreground font-mono truncate max-w-md">
+                            <div className="text-xs text-muted-foreground font-mono truncate max-w-md flex items-center gap-2">
                                 {project.path}
+                                <Button variant="ghost" size="icon" className="h-4 w-4" onClick={handleReveal} title="Reveal in Finder">
+                                    <ExternalLink className="w-3 h-3" />
+                                </Button>
                             </div>
                         </div>
                     </div>
                 </div>
 
                 {/* Quick Actions Grid */}
-                <div className="grid grid-cols-3 gap-3">
+                <div className="grid grid-cols-1 md:grid-cols-3 lg:grid-cols-4 gap-3">
                     <motion.div whileHover={{ y: -1 }} transition={{ duration: 0.2 }}>
-                        <Card className="hover:border-primary/50 transition-colors cursor-pointer group shadow-sm" onClick={handleLaunchTerminal}>
+                        <Card className="hover:border-primary/50 transition-colors cursor-pointer group shadow-sm h-full" onClick={handleLaunchTerminal}>
                             <CardHeader className="p-4 pb-2">
                                 <CardTitle className="text-sm font-medium flex items-center gap-2">
                                     <Terminal className="w-4 h-4 text-blue-500" />
@@ -100,7 +152,22 @@ export const OverviewPanel: React.FC<OverviewPanelProps> = ({ project, onNavigat
                     </motion.div>
 
                     <motion.div whileHover={{ y: -1 }} transition={{ duration: 0.2 }}>
-                        <Card className="hover:border-primary/50 transition-colors cursor-pointer group shadow-sm" onClick={() => onNavigate('notes')}>
+                        <Card className="hover:border-primary/50 transition-colors cursor-pointer group shadow-sm h-full" onClick={handleOpenEditor}>
+                            <CardHeader className="p-4 pb-2">
+                                <CardTitle className="text-sm font-medium flex items-center gap-2">
+                                    <svg className="w-4 h-4 text-blue-600" viewBox="0 0 24 24" fill="currentColor"><path d="M23.15 2.587L18.21.21a1.494 1.494 0 0 0-1.705.29l-9.46 8.63-4.12-3.128a1.5 1.5 0 0 0-1.722.289L.325 7.96a1.5 1.5 0 0 0 .194 2.292l6.236 5.06-6.73 5.42a1.5 1.5 0 0 0 .195 2.293l1.166 1.054a1.499 1.499 0 0 0 2.016.03l6.216-5.06 4.16 3.127a1.495 1.495 0 0 0 1.706-.29l9.49-8.61a1.5 1.5 0 0 0-.17-2.689zM8.54 13.568L2.91 9.3l.858-.756 8.13 6.175zM21.16 3.65l-9.516 8.63-9.5-8.63 1.16 1.054 8.35 6.34-8.35-6.34L21.16 3.65z"/></svg>
+                                    Editor
+                                </CardTitle>
+                            </CardHeader>
+                            <CardContent className="p-4 pt-0">
+                                <p className="text-xs text-muted-foreground mb-3">Open Visual Studio Code</p>
+                                <Button variant="secondary" size="sm" className="w-full h-8 text-xs">Open Code</Button>
+                            </CardContent>
+                        </Card>
+                    </motion.div>
+
+                    <motion.div whileHover={{ y: -1 }} transition={{ duration: 0.2 }}>
+                        <Card className="hover:border-primary/50 transition-colors cursor-pointer group shadow-sm h-full" onClick={() => onNavigate('notes')}>
                             <CardHeader className="p-4 pb-2">
                                 <CardTitle className="text-sm font-medium flex items-center gap-2">
                                     <ScrollText className="w-4 h-4 text-yellow-500" />
@@ -115,61 +182,102 @@ export const OverviewPanel: React.FC<OverviewPanelProps> = ({ project, onNavigat
                             </CardContent>
                         </Card>
                     </motion.div>
-
-                    <motion.div whileHover={{ y: -1 }} transition={{ duration: 0.2 }}>
-                        <Card className="hover:border-primary/50 transition-colors cursor-pointer group shadow-sm" onClick={() => onNavigate('snippets')}>
-                            <CardHeader className="p-4 pb-2">
-                                <CardTitle className="text-sm font-medium flex items-center gap-2">
-                                    <Play className="w-4 h-4 text-green-500" />
-                                    Commands
-                                </CardTitle>
-                            </CardHeader>
-                            <CardContent className="p-4 pt-0">
-                                <p className="text-xs text-muted-foreground mb-3">Run snippets</p>
-                                <Button variant="secondary" size="sm" className="w-full h-8 text-xs">View All</Button>
-                            </CardContent>
-                        </Card>
-                    </motion.div>
                 </div>
 
-                {/* Project Status / Health */}
-                <Card className="border-border/50 bg-card/50 shadow-sm">
-                    <CardHeader className="p-4 py-3 border-b border-border/50">
-                        <CardTitle className="text-xs font-semibold uppercase tracking-wider text-muted-foreground flex items-center gap-2">
-                            <Activity className="w-3.5 h-3.5" />
-                            Project Status
-                        </CardTitle>
-                    </CardHeader>
-                    <CardContent className="p-0">
-                        {notes.length === 0 ? (
-                             <div className="p-8 text-xs text-muted-foreground text-center italic flex flex-col items-center gap-2">
-                                <Tag className="w-8 h-8 opacity-20" />
-                                Create notes with labels to see project health stats here.
-                            </div>
-                        ) : (
-                            <div className="grid grid-cols-2 md:grid-cols-5 divide-x divide-border/50">
-                                {COLORS.map(c => {
-                                    const count = noteStats[c.id] || 0;
-                                    const label = labels[c.id] || c.id;
-                                    
-                                    return (
-                                        <div key={c.id} className="p-4 flex flex-col items-center justify-center gap-1 hover:bg-muted/50 transition-colors">
-                                            <div className={`text-2xl font-bold ${c.text}`}>
-                                                {count}
-                                            </div>
-                                            <div className="flex items-center gap-1.5">
-                                                <div className={`w-2 h-2 rounded-full ${c.indicator}`} />
-                                                <span className="text-xs font-medium text-muted-foreground capitalize truncate max-w-[80px]" title={label}>
-                                                    {label}
-                                                </span>
-                                            </div>
+                <div className="grid grid-cols-1 md:grid-cols-3 gap-6">
+                    {/* Git Pulse Card */}
+                    <Card className="border-border/50 bg-card/50 shadow-sm md:col-span-1">
+                         <CardHeader className="p-4 py-3 border-b border-border/50 flex flex-row items-center justify-between">
+                            <CardTitle className="text-xs font-semibold uppercase tracking-wider text-muted-foreground flex items-center gap-2">
+                                <GitBranch className="w-3.5 h-3.5" />
+                                Repository
+                            </CardTitle>
+                            <Button variant="ghost" size="icon" className="h-6 w-6 -mr-2" onClick={loadGitStatus} disabled={isGitLoading}>
+                                <RefreshCw className={`w-3 h-3 ${isGitLoading ?'animate-spin' : ''}`} />
+                            </Button>
+                        </CardHeader>
+                        <CardContent className="p-4">
+                            {gitStatus ? (
+                                <div className="space-y-4">
+                                    <div className="flex items-center justify-between">
+                                        <div className="flex items-center gap-2">
+                                            <GitBranch className="w-4 h-4 text-primary" />
+                                            <span className="font-mono text-sm font-semibold">{gitStatus.branch}</span>
                                         </div>
-                                    )
-                                })}
-                            </div>
-                        )}
-                    </CardContent>
-                </Card>
+                                        {gitStatus.modified_count > 0 ? (
+                                            <span className="text-xs text-yellow-500 font-medium">{gitStatus.modified_count} modified</span>
+                                        ) : (
+                                            <span className="text-xs text-green-500 font-medium">Clean</span>
+                                        )}
+                                    </div>
+                                    
+                                    <div className="flex items-center gap-4 text-xs text-muted-foreground">
+                                        <div className="flex items-center gap-1" title="Ahead of remote">
+                                            <ArrowUp className={`w-3 h-3 ${gitStatus.ahead > 0 ? 'text-blue-500' : ''}`} />
+                                            {gitStatus.ahead}
+                                        </div>
+                                        <div className="flex items-center gap-1" title="Behind remote">
+                                            <ArrowDown className={`w-3 h-3 ${gitStatus.behind > 0 ? 'text-red-500' : ''}`} />
+                                            {gitStatus.behind}
+                                        </div>
+                                    </div>
+
+                                    {gitStatus.remote_url && (
+                                        <Button variant="outline" size="sm" className="w-full text-xs gap-2" onClick={handleOpenRemote}>
+                                            <ExternalLink className="w-3 h-3" />
+                                            Open Remote
+                                        </Button>
+                                    )}
+                                </div>
+                            ) : (
+                                <div className="flex flex-col items-center justify-center py-6 text-muted-foreground space-y-2">
+                                    <GitBranch className="w-8 h-8 opacity-20" />
+                                    <p className="text-xs">Not a git repository</p>
+                                    <Button variant="link" size="sm" className="h-auto p-0 text-xs">Initialize Git</Button>
+                                </div>
+                            )}
+                        </CardContent>
+                    </Card>
+
+                    {/* Project Status / Health */}
+                    <Card className="border-border/50 bg-card/50 shadow-sm md:col-span-2">
+                        <CardHeader className="p-4 py-3 border-b border-border/50">
+                            <CardTitle className="text-xs font-semibold uppercase tracking-wider text-muted-foreground flex items-center gap-2">
+                                <Activity className="w-3.5 h-3.5" />
+                                Project Status
+                            </CardTitle>
+                        </CardHeader>
+                        <CardContent className="p-0">
+                            {notes.length === 0 ? (
+                                <div className="p-8 text-xs text-muted-foreground text-center italic flex flex-col items-center gap-2">
+                                    <Tag className="w-8 h-8 opacity-20" />
+                                    Create notes with labels to see project health stats here.
+                                </div>
+                            ) : (
+                                <div className="grid grid-cols-2 md:grid-cols-5 divide-x divide-border/50">
+                                    {COLORS.map(c => {
+                                        const count = noteStats[c.id] || 0;
+                                        const label = labels[c.id] || c.id;
+                                        
+                                        return (
+                                            <div key={c.id} className="p-4 flex flex-col items-center justify-center gap-1 hover:bg-muted/50 transition-colors">
+                                                <div className={`text-2xl font-bold ${c.text}`}>
+                                                    {count}
+                                                </div>
+                                                <div className="flex items-center gap-1.5">
+                                                    <div className={`w-2 h-2 rounded-full ${c.indicator}`} />
+                                                    <span className="text-xs font-medium text-muted-foreground capitalize truncate max-w-[80px]" title={label}>
+                                                        {label}
+                                                    </span>
+                                                </div>
+                                            </div>
+                                        )
+                                    })}
+                                </div>
+                            )}
+                        </CardContent>
+                    </Card>
+                </div>
             </div>
         </div>
     );

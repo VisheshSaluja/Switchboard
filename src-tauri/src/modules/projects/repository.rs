@@ -15,7 +15,7 @@ impl ProjectRepository {
     pub async fn create_project(&self, name: String, path: String, ssh_key_path: Option<String>) -> Result<Project> {
         let id = Uuid::new_v4().to_string();
         
-        sqlx::query("INSERT INTO projects (id, name, path, ssh_key_path, notes, settings) VALUES (?, ?, ?, ?, ?, ?)")
+        sqlx::query("INSERT INTO projects (id, name, path, ssh_key_path, notes, settings, created_at, updated_at) VALUES (?, ?, ?, ?, ?, ?, datetime('now'), datetime('now'))")
             .bind(&id)
             .bind(&name)
             .bind(&path)
@@ -25,18 +25,11 @@ impl ProjectRepository {
             .execute(&self.pool)
             .await?;
 
-        Ok(Project {
-            id,
-            name,
-            path,
-            ssh_key_path,
-            notes: None,
-            settings: None,
-        })
+        self.get_project(&id).await?.ok_or_else(|| anyhow::anyhow!("Failed to retrieve created project"))
     }
 
     pub async fn get_project(&self, id: &str) -> Result<Option<Project>> {
-        let project = sqlx::query_as::<_, Project>("SELECT id, name, path, ssh_key_path, notes, settings FROM projects WHERE id = ?")
+        let project = sqlx::query_as::<_, Project>("SELECT id, name, path, ssh_key_path, notes, settings, created_at, updated_at FROM projects WHERE id = ?")
             .bind(id)
             .fetch_optional(&self.pool)
             .await?;
@@ -44,7 +37,7 @@ impl ProjectRepository {
     }
 
     pub async fn list_projects(&self) -> Result<Vec<Project>> {
-        let projects = sqlx::query_as::<_, Project>("SELECT id, name, path, ssh_key_path, notes, settings FROM projects")
+        let projects = sqlx::query_as::<_, Project>("SELECT id, name, path, ssh_key_path, notes, settings, created_at, updated_at FROM projects ORDER BY created_at DESC")
             .fetch_all(&self.pool)
             .await?;
         Ok(projects)

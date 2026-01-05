@@ -3,4 +3,5 @@ pub mod ssh;
 pub mod vault;
 pub mod system;
 pub mod terminal;
+pub mod git;
 

@@ -5,6 +5,8 @@ export interface Project {
     ssh_key_path?: string;
     notes?: string;
     settings?: string; // JSON string
+    created_at: string;
+    updated_at: string;
 }
 
 export interface SshHostModel {
@@ -43,4 +45,12 @@ export interface ProjectNote {
 
 export interface ProjectSettings {
     note_labels: Record<string, string>;
+}
+
+export interface GitStatus {
+    branch: string;
+    modified_count: number;
+    ahead: number;
+    behind: number;
+    remote_url?: string;
 }
