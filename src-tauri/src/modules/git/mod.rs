@@ -12,6 +12,19 @@ pub struct GitStatus {
     pub remote_url: Option<String>,
 }
 
+#[cfg(target_os = "windows")]
+use std::os::windows::process::CommandExt;
+
+const CREATE_NO_WINDOW: u32 = 0x08000000;
+
+fn new_command(program: &str) -> Command {
+    #[allow(unused_mut)]
+    let mut cmd = Command::new(program);
+    #[cfg(target_os = "windows")]
+    cmd.creation_flags(CREATE_NO_WINDOW);
+    cmd
+}
+
 pub fn get_git_status(path: &str) -> Result<Option<GitStatus>> {
     let repo_path = Path::new(path);
     if !repo_path.join(".git").exists() {
@@ -19,7 +32,7 @@ pub fn get_git_status(path: &str) -> Result<Option<GitStatus>> {
     }
 
     // Get branch
-    let output = Command::new("git")
+    let output = new_command("git")
         .args(&["symbolic-ref", "--short", "HEAD"])
         .current_dir(repo_path)
         .output()?;
@@ -27,7 +40,7 @@ pub fn get_git_status(path: &str) -> Result<Option<GitStatus>> {
     let branch = String::from_utf8_lossy(&output.stdout).trim().to_string();
     if branch.is_empty() {
         // Detached HEAD or error, try rev-parse
-        let output = Command::new("git")
+        let output = new_command("git")
             .args(&["rev-parse", "--short", "HEAD"])
             .current_dir(repo_path)
             .output()?;
@@ -38,7 +51,7 @@ pub fn get_git_status(path: &str) -> Result<Option<GitStatus>> {
     }
 
     // Get modified count (porcelain is stable)
-    let output = Command::new("git")
+    let output = new_command("git")
         .args(&["status", "--porcelain"])
         .current_dir(repo_path)
         .output()?;
@@ -46,7 +59,7 @@ pub fn get_git_status(path: &str) -> Result<Option<GitStatus>> {
     let modified_count = status_lines.lines().count();
 
     // Get Remote URL
-    let output = Command::new("git")
+    let output = new_command("git")
         .args(&["remote", "get-url", "origin"])
         .current_dir(repo_path)
         .output()?;
@@ -58,7 +71,7 @@ pub fn get_git_status(path: &str) -> Result<Option<GitStatus>> {
 
     // Helper to get ahead/behind
     // git rev-list --left-right --count HEAD...@{u}
-    let output = Command::new("git")
+    let output = new_command("git")
         .args(&["rev-list", "--left-right", "--count", "HEAD...@{u}"])
         .current_dir(repo_path)
         .output();
@@ -86,7 +99,10 @@ pub fn get_git_status(path: &str) -> Result<Option<GitStatus>> {
 }
 
 pub fn clone_repo(url: &str, target_path: &str) -> Result<()> {
-    let status = Command::new("git")
+    // Clone takes a while, we might WANT a window? 
+    // Usually no, as we should handle stdout/stderr in the app if long running.
+    // For now, suppress it to match user request.
+    let status = new_command("git")
         .args(&["clone", url, target_path])
         .status()?;
 
@@ -114,7 +130,7 @@ pub fn get_git_history(path: &str, limit: usize) -> Result<Vec<Commit>> {
     }
 
     // Format: %H|%|%P|%|%an|%|%aI|%|%s|%|%d
-    let output = Command::new("git")
+    let output = new_command("git")
         .args(&[
             "log",
             &format!("-n{}", limit),

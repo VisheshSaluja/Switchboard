@@ -91,7 +91,7 @@ export const GitPanel: React.FC<GitPanelProps> = ({ path }) => {
                 </Button>
             </div>
             
-            <div className="flex-1 overflow-auto p-4 bg-background relative min-h-[300px]">
+            <div className="flex-1 overflow-auto p-4 bg-background relative h-full w-full">
                 {loading && commits.length === 0 ? (
                      <div className="absolute inset-0 flex flex-col items-center justify-center text-muted-foreground">
                         Loading history...

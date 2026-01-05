@@ -31,7 +31,7 @@ export const ProjectWorkspace: React.FC<ProjectWorkspaceProps> = ({ project, onC
 
     return (
         <Dialog open={true} onOpenChange={(open) => !open && onClose()}>
-            <DialogContent className="max-w-[90vw] md:max-w-5xl h-[85vh] flex flex-col p-0 gap-0 border-border bg-background overflow-hidden shadow-2xl">
+            <DialogContent className="max-w-[95vw] md:max-w-7xl h-[90vh] flex flex-col p-0 gap-0 border-border bg-background overflow-hidden shadow-2xl">
                 <DialogHeader className="px-4 py-3 border-b border-border bg-muted/20 flex flex-row items-center justify-between shrink-0">
                     <div className="flex items-center gap-3">
                         <div className="flex gap-1.5 mr-2">
