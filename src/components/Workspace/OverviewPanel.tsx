@@ -1,8 +1,8 @@
 import React, { useEffect, useState, useMemo } from 'react';
 import type { Project, ProjectNote, ProjectSettings, GitStatus } from '../../types';
 import { Button } from '../ui/button';
-import { Card, CardContent, CardHeader, CardTitle, CardDescription } from '../ui/card';
-import { Terminal, ScrollText, Play, FolderOpen, Activity, Tag, GitBranch, ArrowUp, ArrowDown, ExternalLink, RefreshCw } from 'lucide-react';
+import { Card, CardContent, CardHeader, CardTitle } from '../ui/card';
+import { Terminal, ScrollText, FolderOpen, GitBranch, ExternalLink, RefreshCw, ArrowUp, ArrowDown, Activity, Tag } from 'lucide-react';
 import { motion } from 'framer-motion';
 import { invokeCommand } from '../../lib/tauri';
 import { toast } from 'sonner';

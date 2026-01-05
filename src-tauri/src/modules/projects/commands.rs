@@ -258,25 +258,63 @@ pub async fn get_git_history(path: String, limit: Option<usize>) -> Result<Vec<c
 #[command]
 pub async fn open_in_editor(path: String) -> Result<(), String> {
     #[cfg(target_os = "macos")]
-    let cmd = "code"; // Default to VS Code
-    // You could make this configurable via settings in the future
+    {
+        std::process::Command::new("code")
+            .arg(&path)
+            .spawn()
+            .map_err(|e| e.to_string())?;
+    }
 
-    std::process::Command::new(cmd)
-        .arg(&path)
-        .spawn()
-        .map_err(|e| e.to_string())?;
+    #[cfg(target_os = "windows")]
+    {
+        std::process::Command::new("cmd")
+            .args(&["/C", "code", &path])
+            .spawn()
+            .map_err(|e| e.to_string())?;
+    }
+
+    #[cfg(target_os = "linux")]
+    {
+        // Try VS Code, fallback to xdg-open if needed or just fail
+        std::process::Command::new("code")
+            .arg(&path)
+            .spawn()
+            .map_err(|e| e.to_string())?;
+    }
+    
     Ok(())
 }
 
 #[command]
 pub async fn reveal_in_finder(path: String) -> Result<(), String> {
     #[cfg(target_os = "macos")]
-    std::process::Command::new("open")
-        .arg("-R")
-        .arg(&path)
-        .spawn()
-        .map_err(|e| e.to_string())?;
-    
-    // Linux/Windows implementation would go here
+    {
+        std::process::Command::new("open")
+            .arg("-R")
+            .arg(&path)
+            .spawn()
+            .map_err(|e| e.to_string())?;
+    }
+
+    #[cfg(target_os = "windows")]
+    {
+        // explorer /select,path
+        // Note: canonicalize might be needed for Windows paths to safe-guard
+        std::process::Command::new("explorer")
+            .args(&["/select,", &path])
+            .spawn()
+            .map_err(|e| e.to_string())?;
+    }
+
+    #[cfg(target_os = "linux")]
+    {
+        // xdg-open typically opens the directory, not select
+        // dbus-send or specific file managers support selection, but xdg-open path is safe fallback
+        std::process::Command::new("xdg-open")
+            .arg(&path)
+            .spawn()
+            .map_err(|e| e.to_string())?;
+    }
+
     Ok(())
 }

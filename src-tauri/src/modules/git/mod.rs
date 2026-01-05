@@ -129,7 +129,7 @@ pub fn get_git_history(path: &str, limit: usize) -> Result<Vec<Commit>> {
     }
 
     let stdout = String::from_utf8_lossy(&output.stdout);
-    println!("Git Log Raw Output Length: {}", stdout.len());
+    // println!("Git Log Raw Output Length: {}", stdout.len());
     
     let commits: Vec<Commit> = stdout.lines().filter_map(|line| {
         let parts: Vec<&str> = line.split("|%|").collect();

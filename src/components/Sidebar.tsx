@@ -1,6 +1,5 @@
 import React from 'react';
 import { LayoutGrid, Plus, FolderInput, GitBranch, ChevronUp } from 'lucide-react';
-import { cn } from '../lib/utils';
 import {
   DropdownMenu,
   DropdownMenuContent,

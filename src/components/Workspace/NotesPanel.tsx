@@ -4,7 +4,7 @@ import { Input } from '../ui/input';
 import { Textarea } from '../ui/textarea';
 import { Card, CardContent } from '../ui/card';
 import { Dialog, DialogContent, DialogHeader, DialogTitle, DialogFooter, DialogDescription } from '../ui/dialog';
-import { Plus, Trash2, Edit2, Notebook, Calendar, Loader2, Settings2, Filter, X } from 'lucide-react';
+import { Plus, Trash2, Calendar, Notebook, Loader2, Settings2, X } from 'lucide-react';
 import { invokeCommand } from '../../lib/tauri';
 import { toast } from 'sonner';
 import { useAppStore } from '../../stores/useAppStore';
