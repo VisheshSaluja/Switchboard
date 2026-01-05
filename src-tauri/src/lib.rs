@@ -20,6 +20,7 @@ pub fn run() {
       
       app.handle().plugin(tauri_plugin_shell::init())?;
       app.handle().plugin(tauri_plugin_shell::init())?;
+      app.handle().plugin(tauri_plugin_dialog::init())?;
 
       // Initialize Database
       let app_handle = app.handle();

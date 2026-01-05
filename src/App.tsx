@@ -1,4 +1,4 @@
-import { useEffect, useState } from 'react';
+import { useEffect, useState, useMemo } from 'react';
 import { AppLayout } from './components/layout/AppLayout';
 import { ProjectCard } from './components/ProjectCard';
 import { ProjectWorkspace } from './components/Workspace/ProjectWorkspace';
@@ -10,9 +10,9 @@ import { Dialog, DialogContent, DialogHeader, DialogTitle, DialogFooter, DialogD
 import { Input } from './components/ui/input';
 import { Label } from './components/ui/label';
 import { invokeCommand } from './lib/tauri';
-import { Search, ArrowUpDown, Calendar, Clock } from 'lucide-react';
+import { Search, ArrowUpDown, Calendar, Clock, Folder } from 'lucide-react';
 import { DropdownMenu, DropdownMenuContent, DropdownMenuItem, DropdownMenuTrigger, DropdownMenuSeparator } from './components/ui/dropdown-menu';
-import { useMemo } from 'react';
+import { open } from '@tauri-apps/plugin-dialog';
 
 function App() {
   const [activeTerminalProject, setActiveTerminalProject] = useState<string | null>(null);
@@ -94,6 +94,20 @@ function App() {
         setCloneParentPath(''); 
         setIsCloneOpen(true);
     }
+  };
+
+  const handleBrowse = async (setter: (val: string) => void) => {
+      try {
+          const selected = await open({
+              directory: true,
+              multiple: false,
+          });
+          if (selected) {
+              setter(selected as string);
+          }
+      } catch (e) {
+          console.error(e);
+      }
   };
 
   const submitImport = async () => {
@@ -258,11 +272,17 @@ function App() {
                     </div>
                     <div className="space-y-2">
                         <Label>Absolute System Path</Label>
-                        <Input 
-                            placeholder="/Users/username/projects/my-app" 
-                            value={importPath} 
-                            onChange={(e) => setImportPath(e.target.value)} 
-                        />
+                        <div className="flex gap-2">
+                            <Input 
+                                placeholder="/Users/username/projects/my-app" 
+                                value={importPath} 
+                                onChange={(e) => setImportPath(e.target.value)} 
+                                className="font-mono text-xs"
+                            />
+                            <Button variant="outline" size="icon" onClick={() => handleBrowse(setImportPath)}>
+                                <Folder className="w-4 h-4" />
+                            </Button>
+                        </div>
                         <p className="text-[10px] text-muted-foreground w-full break-all">
                             Tip: You can drag and drop a folder from Finder into this input or just type the path.
                         </p>
@@ -303,11 +323,17 @@ function App() {
                     </div>
                     <div className="space-y-2">
                         <Label>Clone Location (Parent Directory)</Label>
-                        <Input 
-                            placeholder="/Users/username/projects" 
-                            value={cloneParentPath} 
-                            onChange={(e) => setCloneParentPath(e.target.value)} 
-                        />
+                        <div className="flex gap-2">
+                            <Input 
+                                placeholder="/Users/username/projects" 
+                                value={cloneParentPath} 
+                                onChange={(e) => setCloneParentPath(e.target.value)} 
+                                className="font-mono text-xs"
+                            />
+                            <Button variant="outline" size="icon" onClick={() => handleBrowse(setCloneParentPath)}>
+                                <Folder className="w-4 h-4" />
+                            </Button>
+                        </div>
                         <p className="text-[10px] text-muted-foreground">
                             The repository will be cloned into a new folder inside this directory.
                         </p>
