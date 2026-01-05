@@ -6,6 +6,7 @@ import { GitPanel } from './GitPanel';
 import { KeysPanel } from './KeysPanel';
 import { SnippetsPanel } from './SnippetsPanel';
 import { NotesPanel } from './NotesPanel';
+import { ScriptRunner } from './ScriptRunner';
 import type { Project } from '../../types';
 import { FolderOpen, ScrollText, Play, LayoutDashboard, Lock, GitBranch } from 'lucide-react';
 import { toast } from 'sonner';
@@ -19,8 +20,6 @@ export const ProjectWorkspace: React.FC<ProjectWorkspaceProps> = ({ project, onC
     const [activeTab, setActiveTab] = useState('overview');
 
     const handleRunSnippet = async (command: string) => {
-        // For external terminal, we can't easily inject commands yet.
-        // Fallback to clipboard for now.
         try {
             await navigator.clipboard.writeText(command);
             toast.success("Command copied to clipboard!");
@@ -55,6 +54,10 @@ export const ProjectWorkspace: React.FC<ProjectWorkspaceProps> = ({ project, onC
                                     <LayoutDashboard className="w-3.5 h-3.5" />
                                     Overview
                                 </TabsTrigger>
+                                <TabsTrigger value="scripts" className="gap-2">
+                                    <Play className="w-3.5 h-3.5" />
+                                    Scripts
+                                </TabsTrigger>
                                 <TabsTrigger value="git" className="gap-2">
                                     <GitBranch className="w-3.5 h-3.5" />
                                     Git
@@ -64,8 +67,8 @@ export const ProjectWorkspace: React.FC<ProjectWorkspaceProps> = ({ project, onC
                                     Keys
                                 </TabsTrigger>
                                 <TabsTrigger value="snippets" className="gap-2">
-                                    <Play className="w-3.5 h-3.5" />
-                                    Commands
+                                    <ScrollText className="w-3.5 h-3.5" />
+                                    Snippets
                                 </TabsTrigger>
                                 <TabsTrigger value="notes" className="gap-2">
                                     <ScrollText className="w-3.5 h-3.5" />
@@ -78,6 +81,12 @@ export const ProjectWorkspace: React.FC<ProjectWorkspaceProps> = ({ project, onC
                             {activeTab === 'overview' && (
                                 <OverviewPanel project={project} onNavigate={setActiveTab} />
                             )}
+                            
+                            <div className={activeTab === 'scripts' ? 'h-full' : 'hidden h-full'}>
+                                {activeTab === 'scripts' && (
+                                    <ScriptRunner path={project.path} />
+                                )}
+                            </div>
 
                             <div className={activeTab === 'git' ? 'h-full' : 'hidden h-full'}>
                                 {activeTab === 'git' && (

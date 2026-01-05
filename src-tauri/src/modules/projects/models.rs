@@ -59,3 +59,9 @@ pub struct ProjectNote {
     #[sqlx(default)]
     pub updated_at: String,
 }
+#[derive(Debug, Clone, Serialize, Deserialize)]
+pub struct ProjectScript {
+    pub name: String,
+    pub command: String,
+    pub source: String, // e.g. "package.json", "Makefile"
+}

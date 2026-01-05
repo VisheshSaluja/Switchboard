@@ -228,6 +228,17 @@ pub async fn get_project_notes(
 }
 
 #[command]
+pub async fn get_project_scripts(
+    pool: State<'_, SqlitePool>,
+    path: String,
+) -> Result<Vec<crate::modules::projects::models::ProjectScript>, String> {
+    let service = ProjectService::new(pool.inner().clone());
+    service.get_project_scripts(&path)
+        .await
+        .map_err(|e| e.to_string())
+}
+
+#[command]
 pub async fn update_project_settings(
     pool: State<'_, SqlitePool>,
     id: String,

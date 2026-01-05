@@ -1,7 +1,10 @@
-use super::models::{Project, ProjectEnv, Snippet};
+use super::models::{Project, ProjectEnv, Snippet, ProjectScript};
 use super::repository::ProjectRepository;
 use anyhow::Result;
 use sqlx::SqlitePool;
+use std::fs;
+use std::path::Path;
+use serde_json::Value;
 
 pub struct ProjectService {
     repo: ProjectRepository,
@@ -124,5 +127,44 @@ impl ProjectService {
 
     pub async fn update_project_settings(&self, id: &str, settings: String) -> Result<()> {
         self.repo.update_settings(id, settings).await
+    }
+
+    pub async fn get_project_scripts(&self, project_path: &str) -> Result<Vec<ProjectScript>> {
+        let path = crate::shared::utils::expand_path(project_path);
+        let path_obj = Path::new(&path);
+        let mut scripts = Vec::new();
+
+        // 1. package.json (Node.js)
+        let package_json_path = path_obj.join("package.json");
+        if package_json_path.exists() {
+            if let Ok(content) = fs::read_to_string(package_json_path) {
+                if let Ok(json) = serde_json::from_str::<Value>(&content) {
+                    if let Some(scripts_obj) = json["scripts"].as_object() {
+                        for (name, cmd) in scripts_obj {
+                            if let Some(cmd_str) = cmd.as_str() {
+                                scripts.push(ProjectScript {
+                                    name: name.clone(),
+                                    command: cmd_str.to_string(),
+                                    source: "package.json".to_string(),
+                                });
+                            }
+                        }
+                    }
+                }
+            }
+        }
+        
+        // 2. Makefile (Generic)
+        let makefile_path = path_obj.join("Makefile");
+        if makefile_path.exists() {
+             // Basic regex parsing for Makefile targets could go here
+             // For now, let's keep it simple or skip
+        }
+
+        // 3. Cargo.toml (Rust) - optional, typically "cargo run" is standard
+        
+        // 4. composer.json (PHP)
+
+        Ok(scripts)
     }
 }
