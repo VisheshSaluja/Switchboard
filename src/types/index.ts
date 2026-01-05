@@ -47,6 +47,15 @@ export interface ProjectSettings {
     note_labels: Record<string, string>;
 }
 
+export interface Commit {
+    hash: string;
+    parents: string[];
+    author: string;
+    date: string;
+    message: string;
+    refs: string;
+}
+
 export interface GitStatus {
     branch: string;
     modified_count: number;

@@ -96,3 +96,52 @@ pub fn clone_repo(url: &str, target_path: &str) -> Result<()> {
         Err(anyhow!("Git clone failed"))
     }
 }
+
+#[derive(Debug, Serialize, Deserialize)]
+pub struct Commit {
+    pub hash: String,
+    pub parents: Vec<String>,
+    pub author: String,
+    pub date: String,
+    pub message: String,
+    pub refs: String,
+}
+
+pub fn get_git_history(path: &str, limit: usize) -> Result<Vec<Commit>> {
+    let repo_path = Path::new(path);
+    if !repo_path.join(".git").exists() {
+        return Ok(Vec::new());
+    }
+
+    // Format: %H|%p|%an|%at|%s|%d
+    let output = Command::new("git")
+        .args(&[
+            "log",
+            &format!("-n{}", limit),
+            "--pretty=format:%H|%p|%an|%ar|%s|%d",
+            "--topo-order"
+        ])
+        .current_dir(repo_path)
+        .output()?;
+
+    if !output.status.success() {
+        return Err(anyhow!("Failed to get git log"));
+    }
+
+    let stdout = String::from_utf8_lossy(&output.stdout);
+    let commits: Vec<Commit> = stdout.lines().filter_map(|line| {
+        let parts: Vec<&str> = line.split('|').collect();
+        if parts.len() < 5 { return None; }
+        
+        Some(Commit {
+            hash: parts[0].to_string(),
+            parents: parts[1].split_whitespace().map(|s| s.to_string()).collect(),
+            author: parts[2].to_string(),
+            date: parts[3].to_string(),
+            message: parts[4].to_string(),
+            refs: parts.get(5).unwrap_or(&"").to_string(),
+        })
+    }).collect();
+
+    Ok(commits)
+}

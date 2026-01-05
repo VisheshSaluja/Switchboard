@@ -69,6 +69,7 @@ pub fn run() {
         modules::projects::commands::update_project_settings,
         modules::projects::commands::get_git_status,
         modules::projects::commands::git_clone,
+        modules::projects::commands::get_git_history,
         modules::projects::commands::open_in_editor,
         modules::projects::commands::reveal_in_finder,
         modules::terminal::commands::spawn_shell,

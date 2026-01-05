@@ -251,6 +251,11 @@ pub async fn git_clone(url: String, path: String) -> Result<(), String> {
 }
 
 #[command]
+pub async fn get_git_history(path: String, limit: Option<usize>) -> Result<Vec<crate::modules::git::Commit>, String> {
+    crate::modules::git::get_git_history(&path, limit.unwrap_or(50)).map_err(|e| e.to_string())
+}
+
+#[command]
 pub async fn open_in_editor(path: String) -> Result<(), String> {
     #[cfg(target_os = "macos")]
     let cmd = "code"; // Default to VS Code

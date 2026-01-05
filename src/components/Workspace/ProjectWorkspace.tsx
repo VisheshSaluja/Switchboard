@@ -2,11 +2,12 @@ import React, { useState } from 'react';
 import { Dialog, DialogContent, DialogHeader, DialogTitle, DialogDescription } from '../ui/dialog';
 import { Tabs, TabsList, TabsTrigger } from '../ui/tabs';
 import { OverviewPanel } from './OverviewPanel';
+import { GitPanel } from './GitPanel';
 import { KeysPanel } from './KeysPanel';
 import { SnippetsPanel } from './SnippetsPanel';
 import { NotesPanel } from './NotesPanel';
 import type { Project } from '../../types';
-import { FolderOpen, ScrollText, Play, LayoutDashboard, Lock } from 'lucide-react';
+import { FolderOpen, ScrollText, Play, LayoutDashboard, Lock, GitBranch } from 'lucide-react';
 import { toast } from 'sonner';
 
 interface ProjectWorkspaceProps {
@@ -54,7 +55,10 @@ export const ProjectWorkspace: React.FC<ProjectWorkspaceProps> = ({ project, onC
                                     <LayoutDashboard className="w-3.5 h-3.5" />
                                     Overview
                                 </TabsTrigger>
-                                {/* Terminal Tab Removed - Using External Terminal */}
+                                <TabsTrigger value="git" className="gap-2">
+                                    <GitBranch className="w-3.5 h-3.5" />
+                                    Git
+                                </TabsTrigger>
                                 <TabsTrigger value="keys" className="gap-2">
                                     <Lock className="w-3.5 h-3.5" />
                                     Keys
@@ -74,6 +78,12 @@ export const ProjectWorkspace: React.FC<ProjectWorkspaceProps> = ({ project, onC
                             {activeTab === 'overview' && (
                                 <OverviewPanel project={project} onNavigate={setActiveTab} />
                             )}
+
+                            <div className={activeTab === 'git' ? 'h-full' : 'hidden h-full'}>
+                                {activeTab === 'git' && (
+                                    <GitPanel path={project.path} />
+                                )}
+                            </div>
 
                             <div className={activeTab === 'keys' ? 'h-full' : 'hidden h-full'}>
                                 {activeTab === 'keys' && (
@@ -96,7 +106,6 @@ export const ProjectWorkspace: React.FC<ProjectWorkspaceProps> = ({ project, onC
                                 {activeTab === 'notes' && (
                                     <NotesPanel 
                                         projectId={project.id} 
-                                        initialNotes={project.notes}
                                     />
                                 )}
                             </div>
