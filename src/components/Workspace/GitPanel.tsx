@@ -84,6 +84,7 @@ export const GitPanel: React.FC<GitPanelProps> = ({ path }) => {
                 <h3 className="text-sm font-medium flex items-center gap-2">
                     <GitCommitHorizontal className="w-4 h-4 text-primary" />
                     Commit History
+                    <span className="text-xs text-muted-foreground ml-2">({commits.length} commits)</span>
                 </h3>
                 <Button variant="ghost" size="sm" onClick={fetchData} disabled={loading}>
                     <RefreshCw className={`w-3.5 h-3.5 ${loading ? 'animate-spin' : ''}`} />
@@ -112,14 +113,22 @@ export const GitPanel: React.FC<GitPanelProps> = ({ path }) => {
                             orientation: Orientation.VerticalReverse,
                         }}>
                             {(gitgraph) => {
-                                const importData = commits.map(c => ({
-                                    hash: c.hash,
-                                    subject: c.message,
-                                    author: { name: c.author, email: "" },
-                                    date: c.date,
-                                    refs: c.refs ? c.refs.split(',').map(r => r.trim()).filter(Boolean) : [],
-                                    parents: c.parents.filter(Boolean)
-                                }));
+                                // GitGraph expects commits in chronological order (oldest to newest) to build the graph correctly
+                                const importData = [...commits].reverse().map(c => {
+                                    // Clean refs: remove parens containing (HEAD -> main, origin/main)
+                                    const cleanRefs = c.refs 
+                                        ? c.refs.replace(/[()]/g, '').split(',').map(r => r.trim()).filter(Boolean)
+                                        : [];
+                                        
+                                    return {
+                                        hash: c.hash,
+                                        subject: c.message,
+                                        author: { name: c.author, email: "" },
+                                        date: c.date,
+                                        refs: cleanRefs,
+                                        parents: c.parents.filter(Boolean)
+                                    };
+                                });
                                 gitgraph.import(importData);
                             }}
                         </Gitgraph>

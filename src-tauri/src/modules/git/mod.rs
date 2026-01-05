@@ -113,12 +113,12 @@ pub fn get_git_history(path: &str, limit: usize) -> Result<Vec<Commit>> {
         return Ok(Vec::new());
     }
 
-    // Format: %H|%p|%an|%at|%s|%d
+    // Format: %H|%|%P|%|%an|%|%aI|%|%s|%|%d
     let output = Command::new("git")
         .args(&[
             "log",
             &format!("-n{}", limit),
-            "--pretty=format:%H|%p|%an|%ar|%s|%d",
+            "--pretty=format:%H|%|%P|%|%an|%|%aI|%|%s|%|%d",
             "--topo-order"
         ])
         .current_dir(repo_path)
@@ -129,9 +129,14 @@ pub fn get_git_history(path: &str, limit: usize) -> Result<Vec<Commit>> {
     }
 
     let stdout = String::from_utf8_lossy(&output.stdout);
+    println!("Git Log Raw Output Length: {}", stdout.len());
+    
     let commits: Vec<Commit> = stdout.lines().filter_map(|line| {
-        let parts: Vec<&str> = line.split('|').collect();
-        if parts.len() < 5 { return None; }
+        let parts: Vec<&str> = line.split("|%|").collect();
+        if parts.len() < 5 { 
+            println!("Skipping line, parts len: {}", parts.len());
+            return None; 
+        }
         
         Some(Commit {
             hash: parts[0].to_string(),
@@ -142,6 +147,8 @@ pub fn get_git_history(path: &str, limit: usize) -> Result<Vec<Commit>> {
             refs: parts.get(5).unwrap_or(&"").to_string(),
         })
     }).collect();
+    
+    println!("Parsed Commits Count: {}", commits.len());
 
     Ok(commits)
 }
