@@ -6,6 +6,7 @@ import { Terminal, ScrollText, FolderOpen, GitBranch, ExternalLink, RefreshCw, A
 import { motion } from 'framer-motion';
 import { invokeCommand } from '../../lib/tauri';
 import { toast } from 'sonner';
+import { LinksPanel } from './LinksPanel';
 
 interface OverviewPanelProps {
     project: Project;
@@ -169,8 +170,15 @@ export const OverviewPanel: React.FC<OverviewPanelProps> = ({ project, onNavigat
                 </div>
 
                 <div className="grid grid-cols-1 md:grid-cols-3 gap-6">
+                    {/* Context / Links Panel (New) */}
+                    <Card className="border-border/50 bg-card/50 shadow-sm md:col-span-1 flex flex-col min-h-[300px]">
+                         <CardContent className="p-4 flex-1">
+                            <LinksPanel projectId={project.id} />
+                        </CardContent>
+                    </Card>
+
                     {/* Git Pulse Card */}
-                    <Card className="border-border/50 bg-card/50 shadow-sm md:col-span-1">
+                    <Card className="border-border/50 bg-card/50 shadow-sm md:col-span-2">
                          <CardHeader className="p-4 py-3 border-b border-border/50 flex flex-row items-center justify-between">
                             <CardTitle className="text-xs font-semibold uppercase tracking-wider text-muted-foreground flex items-center gap-2">
                                 <GitBranch className="w-3.5 h-3.5" />
@@ -205,13 +213,6 @@ export const OverviewPanel: React.FC<OverviewPanelProps> = ({ project, onNavigat
                                             {gitStatus.behind}
                                         </div>
                                     </div>
-
-                                    {/* {gitStatus.remote_url && (
-                                        <Button variant="outline" size="sm" className="w-full text-xs gap-2" onClick={handleOpenRemote}>
-                                            <ExternalLink className="w-3 h-3" />
-                                            Open Remote
-                                        </Button>
-                                    )} */}
                                 </div>
                             ) : (
                                 <div className="flex flex-col items-center justify-center py-6 text-muted-foreground space-y-2">
@@ -224,7 +225,7 @@ export const OverviewPanel: React.FC<OverviewPanelProps> = ({ project, onNavigat
                     </Card>
 
                     {/* Project Status / Health */}
-                    <Card className="border-border/50 bg-card/50 shadow-sm md:col-span-2">
+                    <Card className="border-border/50 bg-card/50 shadow-sm md:col-span-3">
                         <CardHeader className="p-4 py-3 border-b border-border/50">
                             <CardTitle className="text-xs font-semibold uppercase tracking-wider text-muted-foreground flex items-center gap-2">
                                 <Activity className="w-3.5 h-3.5" />

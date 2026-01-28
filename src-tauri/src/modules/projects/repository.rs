@@ -1,4 +1,4 @@
-use super::models::{Project, ProjectEnv, Snippet, ProjectKey, ProjectNote};
+use super::models::{Project, ProjectEnv, Snippet, ProjectKey, ProjectNote, ProjectLink};
 use anyhow::Result;
 use sqlx::SqlitePool;
 use uuid::Uuid;
@@ -145,7 +145,8 @@ impl ProjectRepository {
         // Manual cleanup if no CASCADE (better safe)
         sqlx::query("DELETE FROM project_envs WHERE project_id = ?").bind(id).execute(&mut *tx).await?;
         sqlx::query("DELETE FROM project_snippets WHERE project_id = ?").bind(id).execute(&mut *tx).await?;
-        sqlx::query("DELETE FROM project_notes WHERE project_id = ?").bind(id).execute(&mut *tx).await?; // New: Delete notes
+        sqlx::query("DELETE FROM project_notes WHERE project_id = ?").bind(id).execute(&mut *tx).await?; 
+        sqlx::query("DELETE FROM project_links WHERE project_id = ?").bind(id).execute(&mut *tx).await?; 
         sqlx::query("DELETE FROM projects WHERE id = ?").bind(id).execute(&mut *tx).await?;
 
         tx.commit().await?;
@@ -232,6 +233,45 @@ impl ProjectRepository {
 
     pub async fn delete_note(&self, id: &str) -> Result<()> {
         sqlx::query("DELETE FROM project_notes WHERE id = ?")
+            .bind(id)
+            .execute(&self.pool)
+            .await?;
+        Ok(())
+    }
+
+    // Links
+    pub async fn create_link(&self, project_id: String, title: String, url: String, icon: Option<String>) -> Result<ProjectLink> {
+        let id = Uuid::new_v4().to_string();
+
+        sqlx::query("INSERT INTO project_links (id, project_id, title, url, icon) VALUES (?, ?, ?, ?, ?)")
+            .bind(&id)
+            .bind(&project_id)
+            .bind(&title)
+            .bind(&url)
+            .bind(&icon)
+            .execute(&self.pool)
+            .await?;
+
+        Ok(ProjectLink {
+            id,
+            project_id,
+            title,
+            url,
+            icon,
+            created_at: String::new(),
+        })
+    }
+
+    pub async fn get_project_links(&self, project_id: &str) -> Result<Vec<ProjectLink>> {
+        let links = sqlx::query_as::<_, ProjectLink>("SELECT id, project_id, title, url, icon, created_at FROM project_links WHERE project_id = ? ORDER BY created_at ASC")
+            .bind(project_id)
+            .fetch_all(&self.pool)
+            .await?;
+        Ok(links)
+    }
+
+    pub async fn delete_link(&self, id: &str) -> Result<()> {
+        sqlx::query("DELETE FROM project_links WHERE id = ?")
             .bind(id)
             .execute(&self.pool)
             .await?;

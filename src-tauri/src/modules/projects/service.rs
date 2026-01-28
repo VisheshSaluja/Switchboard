@@ -1,4 +1,4 @@
-use super::models::{Project, ProjectEnv, Snippet, ProjectScript};
+use super::models::{Project, ProjectEnv, Snippet, ProjectScript, ProjectLink};
 use super::repository::ProjectRepository;
 use anyhow::Result;
 use sqlx::SqlitePool;
@@ -127,6 +127,19 @@ impl ProjectService {
 
     pub async fn delete_note(&self, id: &str) -> Result<()> {
         self.repo.delete_note(id).await
+    }
+
+    // Links
+    pub async fn create_link(&self, project_id: String, title: String, url: String, icon: Option<String>) -> Result<ProjectLink> {
+        self.repo.create_link(project_id, title, url, icon).await
+    }
+
+    pub async fn get_project_links(&self, project_id: &str) -> Result<Vec<ProjectLink>> {
+        self.repo.get_project_links(project_id).await
+    }
+
+    pub async fn delete_link(&self, id: &str) -> Result<()> {
+        self.repo.delete_link(id).await
     }
 
     pub async fn update_project_settings(&self, id: &str, settings: String) -> Result<()> {

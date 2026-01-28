@@ -65,3 +65,14 @@ pub struct ProjectScript {
     pub command: String,
     pub source: String, // e.g. "package.json", "Makefile"
 }
+
+#[derive(Debug, Clone, Serialize, Deserialize, FromRow)]
+pub struct ProjectLink {
+    pub id: String,
+    pub project_id: String,
+    pub title: String,
+    pub url: String,
+    pub icon: Option<String>,
+    #[sqlx(default)]
+    pub created_at: String,
+}

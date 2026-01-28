@@ -1,10 +1,9 @@
 use std::sync::{Arc, Mutex};
 // Actually checkuse std::sync::{Arc, Mutex};
 use tauri::{Window, Emitter};
-use portable_pty::{CommandBuilder, NativePtySystem, PtySize, PtySystem, MasterPty};
-// Wildcard to hopefully bring UnixMasterPty into scope if exposed
-use portable_pty::*;
-use std::io::{Read, Write};
+use portable_pty::{CommandBuilder, NativePtySystem, PtySize, PtySystem};
+
+use std::io::{Read};
 use std::thread;
 use anyhow::{Result, anyhow};
 use uuid::Uuid;

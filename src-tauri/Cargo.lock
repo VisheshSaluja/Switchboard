@@ -116,6 +116,7 @@ dependencies = [
  "keyring",
  "localauthentication-rs",
  "log",
+ "open",
  "portable-pty",
  "security-framework 3.5.1",
  "security-framework-sys",

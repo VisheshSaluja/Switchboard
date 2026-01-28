@@ -274,6 +274,47 @@ pub async fn save_project_note_image(
         .map_err(|e| e.to_string())
 }
 
+#[command]
+pub async fn add_project_link(
+    pool: State<'_, SqlitePool>,
+    project_id: String,
+    title: String,
+    url: String,
+    icon: Option<String>
+) -> Result<crate::modules::projects::models::ProjectLink, String> {
+    let service = ProjectService::new(pool.inner().clone());
+    service.create_link(project_id, title, url, icon)
+        .await
+        .map_err(|e| e.to_string())
+}
+
+#[command]
+pub async fn get_project_links(
+    pool: State<'_, SqlitePool>,
+    project_id: String
+) -> Result<Vec<crate::modules::projects::models::ProjectLink>, String> {
+    let service = ProjectService::new(pool.inner().clone());
+    service.get_project_links(&project_id)
+        .await
+        .map_err(|e| e.to_string())
+}
+
+#[command]
+pub async fn delete_project_link(
+    pool: State<'_, SqlitePool>,
+    id: String
+) -> Result<(), String> {
+    let service = ProjectService::new(pool.inner().clone());
+    service.delete_link(&id)
+        .await
+        .map_err(|e| e.to_string())
+}
+
+#[command]
+pub async fn open_url(url: String) -> Result<(), String> {
+    open::that(url).map_err(|e| e.to_string())
+}
+
 // Git & FS
 #[command]
 pub async fn get_git_status(path: String) -> Result<Option<crate::modules::git::GitStatus>, String> {
