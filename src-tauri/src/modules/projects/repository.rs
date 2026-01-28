@@ -120,6 +120,14 @@ impl ProjectRepository {
             .await?;
         Ok(snippets)
     }
+
+    pub async fn delete_snippet(&self, id: &str) -> Result<()> {
+        sqlx::query("DELETE FROM project_snippets WHERE id = ?")
+            .bind(id)
+            .execute(&self.pool)
+            .await?;
+        Ok(())
+    }
     pub async fn update_project(&self, id: &str, name: String, path: String, key_path: Option<String>) -> Result<()> {
         sqlx::query("UPDATE projects SET name = ?, path = ?, ssh_key_path = ? WHERE id = ?")
             .bind(name)

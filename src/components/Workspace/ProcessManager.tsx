@@ -2,7 +2,7 @@ import React, { useState, useEffect } from 'react';
 import { Button } from '../ui/button';
 import { Input } from '../ui/input';
 import { ScrollArea } from '../ui/scroll-area';
-import { Square, Plus, Terminal as TerminalIcon, LayoutList } from 'lucide-react';
+import { Square, Plus, Terminal as TerminalIcon, LayoutList, Trash2 } from 'lucide-react';
 import { ProjectTerminal } from './ProjectTerminal';
 import { invokeCommand } from '../../lib/tauri';
 import { toast } from 'sonner';
@@ -16,35 +16,82 @@ interface Process {
 }
 
 interface ProcessManagerProps {
+    projectId: string; // Added projectId
     path: string;
 }
 
-export const ProcessManager: React.FC<ProcessManagerProps> = ({ path }) => {
+export const ProcessManager: React.FC<ProcessManagerProps> = ({ projectId, path }) => {
     const [processes, setProcesses] = useState<Process[]>([]);
+    const [snippets, setSnippets] = useState<any[]>([]); // Using 'any' briefly to avoid import churn, should be Snippet
     const [newCommand, setNewCommand] = useState('');
     const [selectedId, setSelectedId] = useState<string | null>(null);
 
     useEffect(() => {
+        // Fetch active processes
         invokeCommand<Process[]>('get_active_processes')
             .then(setProcesses)
             .catch(err => {
                 console.error("Failed to fetch active processes:", err);
                 toast.error("Failed to restore process list");
             });
-    }, []);
 
-    const handleStart = async (e: React.FormEvent) => {
-        e.preventDefault();
+        // Fetch saved snippets
+        fetchSnippets();
+    }, [projectId]); // Re-fetch if project changes
+
+    const fetchSnippets = async () => {
+        try {
+            const data = await invokeCommand<any[]>('get_project_snippets', { projectId });
+            setSnippets(data);
+        } catch (e) {
+            console.error("Failed to fetch saved commands:", e);
+        }
+    };
+
+    const handleSaveCommand = async (e: React.MouseEvent) => {
+        e.preventDefault(); // Prevent form submit if inside form
         if (!newCommand.trim()) return;
 
         try {
+            await invokeCommand('add_snippet', {
+                projectId,
+                label: newCommand.trim(), // Use command as label by default
+                command: newCommand.trim(),
+                description: null
+            });
+            toast.success("Command saved!");
+            fetchSnippets();
+        } catch (e) {
+            console.error(e);
+            toast.error("Failed to save command");
+        }
+    };
+
+    const handleDeleteSnippet = async (id: string, e: React.MouseEvent) => {
+        e.stopPropagation();
+        try {
+            await invokeCommand('delete_snippet', { id });
+            toast.success("Command deleted");
+            fetchSnippets();
+        } catch (err) {
+            console.error(err);
+            toast.error("Failed to delete command");
+        }
+    };
+
+    const handleStart = async (e: React.FormEvent, cmdOverride?: string) => {
+        if (e) e.preventDefault();
+        const cmdToRun = cmdOverride || newCommand;
+        if (!cmdToRun.trim()) return;
+
+        try {
             const process = await invokeCommand<Process>('start_process', { 
-                command: newCommand, 
+                command: cmdToRun, 
                 cwd: path 
             });
             setProcesses(prev => [...prev, process]);
             setSelectedId(process.id);
-            setNewCommand('');
+            if (!cmdOverride) setNewCommand('');
             toast.success("Process started");
         } catch (err) {
             console.error(err);
@@ -80,7 +127,18 @@ export const ProcessManager: React.FC<ProcessManagerProps> = ({ path }) => {
                             placeholder="npm run dev..."
                             className="h-8 text-xs font-mono"
                         />
-                        <Button type="submit" size="icon" className="h-8 w-8 shrink-0">
+                        <Button 
+                            type="button" 
+                            size="icon" 
+                            variant="secondary"
+                            className="h-8 w-8 shrink-0"
+                            title="Save Command"
+                            onClick={handleSaveCommand}
+                            disabled={!newCommand.trim()}
+                        >
+                            <span className="text-xs font-bold">+S</span> 
+                        </Button>
+                        <Button type="submit" size="icon" className="h-8 w-8 shrink-0" title="Run Command">
                             <Plus className="w-4 h-4" />
                         </Button>
                     </form>
@@ -117,6 +175,37 @@ export const ProcessManager: React.FC<ProcessManagerProps> = ({ path }) => {
                             <div className="p-4 text-center text-xs text-muted-foreground">
                                 No active processes
                             </div>
+                        )}
+
+                        {snippets.length > 0 && (
+                            <>
+                                <div className="mt-4 mb-2 px-2 text-xs font-semibold text-muted-foreground uppercase tracking-wider">
+                                    Saved Commands
+                                </div>
+                                {snippets.map((snip: any) => (
+                                    <div
+                                        key={snip.id}
+                                        onClick={(e) => {
+                                            // Run command
+                                            handleStart(e as any, snip.command);
+                                        }}
+                                        className="group/item flex items-center justify-between p-2 rounded-md hover:bg-muted cursor-pointer text-sm font-mono text-muted-foreground hover:text-foreground transition-colors"
+                                    >
+                                        <div className="flex items-center gap-2 truncate flex-1 min-w-0">
+                                            <Plus className="w-3 h-3 shrink-0 opacity-50" />
+                                            <span className="truncate" title={snip.command}>{snip.label}</span>
+                                        </div>
+                                        <Button 
+                                            variant="ghost" 
+                                            size="icon" 
+                                            className="h-6 w-6 opacity-0 group-hover/item:opacity-100 hover:text-destructive hover:bg-destructive/10"
+                                            onClick={(e) => handleDeleteSnippet(snip.id, e)}
+                                        >
+                                            <Trash2 className="w-3 h-3" />
+                                        </Button>
+                                    </div>
+                                ))}
+                            </>
                         )}
                     </div>
                 </ScrollArea>

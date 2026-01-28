@@ -4,7 +4,8 @@ import { invokeCommand } from '../../lib/tauri';
 import { Button } from '../ui/button';
 import { Card, CardContent } from '../ui/card';
 import { Input } from '../ui/input';
-import { Plus, Play, Copy } from 'lucide-react';
+import { Plus, Play, Copy, Trash2 } from 'lucide-react';
+import { toast } from 'sonner';
 
 interface SnippetsPanelProps {
     projectId: string;
@@ -43,8 +44,21 @@ export const SnippetsPanel: React.FC<SnippetsPanelProps> = ({ projectId, onRun }
             setNewCommand('');
             setIsCreating(false);
             loadSnippets();
+            toast.success("Snippet saved");
         } catch (e) {
             console.error(e);
+            toast.error("Failed to save snippet");
+        }
+    };
+
+    const handleDelete = async (id: string) => {
+        try {
+            await invokeCommand('delete_snippet', { id });
+            toast.success("Snippet deleted");
+            loadSnippets();
+        } catch (e) {
+            console.error(e);
+            toast.error("Failed to delete snippet");
         }
     };
 
@@ -109,6 +123,15 @@ export const SnippetsPanel: React.FC<SnippetsPanelProps> = ({ projectId, onRun }
                                 >
                                     <Play className="w-3 h-3" />
                                     Run
+                                </Button>
+                                <Button 
+                                    variant="ghost" 
+                                    size="icon" 
+                                    className="h-7 w-7 text-muted-foreground hover:text-destructive hover:bg-destructive/10"
+                                    onClick={() => handleDelete(snippet.id)}
+                                    title="Delete Snippet"
+                                >
+                                    <Trash2 className="w-3.5 h-3.5" />
                                 </Button>
                             </div>
                         </CardContent>

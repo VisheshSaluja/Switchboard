@@ -61,6 +61,7 @@ pub fn run() {
         modules::projects::commands::update_project_notes,
         modules::projects::commands::add_snippet,
         modules::projects::commands::get_project_snippets,
+        modules::projects::commands::delete_snippet,
         modules::projects::commands::update_project,
         modules::projects::commands::delete_project,
         modules::projects::commands::add_project_key,

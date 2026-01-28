@@ -126,7 +126,7 @@ export const ProjectWorkspace: React.FC<ProjectWorkspaceProps> = ({ project, onC
 
                             <div className={activeTab === 'processes' ? 'h-full' : 'hidden h-full'}>
                                 {activeTab === 'processes' && (
-                                    <ProcessManager path={project.path} />
+                                    <ProcessManager path={project.path} projectId={project.id} />
                                 )}
                             </div>
                         </div>

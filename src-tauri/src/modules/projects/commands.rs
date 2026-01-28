@@ -103,6 +103,17 @@ pub async fn get_project_snippets(
 }
 
 #[command]
+pub async fn delete_snippet(
+    pool: State<'_, SqlitePool>,
+    id: String
+) -> Result<(), String> {
+    let service = ProjectService::new(pool.inner().clone());
+    service.delete_snippet(&id)
+        .await
+        .map_err(|e| e.to_string())
+}
+
+#[command]
 pub async fn update_project(
     pool: State<'_, SqlitePool>,
     id: String,

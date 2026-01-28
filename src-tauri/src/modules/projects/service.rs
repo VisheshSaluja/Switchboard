@@ -62,6 +62,10 @@ impl ProjectService {
     pub async fn get_project_snippets(&self, project_id: &str) -> Result<Vec<Snippet>> {
         self.repo.get_project_snippets(project_id).await
     }
+
+    pub async fn delete_snippet(&self, id: &str) -> Result<()> {
+        self.repo.delete_snippet(id).await
+    }
     pub async fn update_project(&self, id: &str, name: String, path: String, key_path: Option<String>) -> Result<()> {
         self.repo.update_project(id, name, path, key_path).await
     }
