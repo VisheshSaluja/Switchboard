@@ -1,22 +1,18 @@
-import React from 'react';
+import React, { useState } from 'react';
 import type { Project } from '../types';
 import { Card, CardHeader, CardTitle, CardContent, CardFooter } from "./ui/card";
 import { Button } from "./ui/button";
-import { Terminal, FolderOpen, Key } from 'lucide-react';
+import { Terminal, FolderOpen, Key, Pencil, Trash2, FolderSearch } from 'lucide-react';
 import { motion } from 'framer-motion';
+import { useAppStore } from '../stores/useAppStore';
+import { Dialog, DialogContent, DialogHeader, DialogTitle, DialogFooter, DialogDescription } from "./ui/dialog";
+import { Input } from "./ui/input";
+import { open } from '@tauri-apps/plugin-dialog';
 
 interface ProjectCardProps {
   project: Project;
   onLaunch: (id: string) => void;
 }
-
-import { useState } from 'react';
-import { useAppStore } from '../stores/useAppStore';
-import { Dialog, DialogContent, DialogHeader, DialogTitle, DialogFooter, DialogDescription } from "./ui/dialog";
-import { Input } from "./ui/input";
-import { Pencil, Trash2 } from 'lucide-react';
-
-// ... imports
 
 export const ProjectCard: React.FC<ProjectCardProps> = ({ project, onLaunch }) => {
   const { deleteProject, updateProject } = useAppStore();
@@ -37,6 +33,22 @@ export const ProjectCard: React.FC<ProjectCardProps> = ({ project, onLaunch }) =
   const handleUpdate = async () => {
     await updateProject(project.id, editName, editPath, editKey || undefined);
     setShowEdit(false);
+  };
+
+  const handleBrowse = async () => {
+      try {
+          const selected = await open({
+              directory: true,
+              multiple: false,
+              defaultPath: editPath,
+          });
+          
+          if (selected && typeof selected === 'string') {
+              setEditPath(selected);
+          }
+      } catch (err) {
+          console.error("Failed to open dialog:", err);
+      }
   };
 
   return (
@@ -102,7 +114,12 @@ export const ProjectCard: React.FC<ProjectCardProps> = ({ project, onLaunch }) =
                 </div>
                 <div className="space-y-2">
                     <div className="text-sm font-medium">Path</div>
-                    <Input value={editPath} onChange={e => setEditPath(e.target.value)} />
+                    <div className="flex gap-2">
+                        <Input value={editPath} onChange={e => setEditPath(e.target.value)} />
+                        <Button variant="outline" size="icon" onClick={handleBrowse} title="Browse Directory">
+                            <FolderSearch className="w-4 h-4" />
+                        </Button>
+                    </div>
                 </div>
                 <div className="space-y-2">
                     <div className="text-sm font-medium">SSH Key (Optional)</div>

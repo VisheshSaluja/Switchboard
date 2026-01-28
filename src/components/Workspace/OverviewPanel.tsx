@@ -95,22 +95,6 @@ export const OverviewPanel: React.FC<OverviewPanelProps> = ({ project, onNavigat
         }
     };
 
-    const handleOpenRemote = () => {
-        if (gitStatus?.remote_url) {
-            invokeCommand('open_external', { url: gitStatus.remote_url }).catch(console.error);
-            // Since we don't have open_external explicitly, we can use spawn or shell open
-            // but we can just assume user has browser
-            // Actually, let's use the shell open we already have or just generic open
-            // Re-using reveal_in_finder which uses 'open' on mac might work for URLs too?
-            // Safer to use proper method if exists, but for now let's try generic open or just console log if missing
-            // We'll use the 'open' command we implemented for finder, it maps to `open` on mac which opens URLs too.
-             invokeCommand('reveal_in_finder', { path: gitStatus.remote_url }).catch(e => {
-                 // Fallback if that fails, though `open` usually works.
-                 console.error("Failed to open remote", e);
-             });
-        }
-    }
-
     return (
         <div className="h-full w-full p-4 overflow-y-auto bg-muted/5 scrollbar-thin">
             <div className="max-w-5xl mx-auto space-y-6">
@@ -222,12 +206,12 @@ export const OverviewPanel: React.FC<OverviewPanelProps> = ({ project, onNavigat
                                         </div>
                                     </div>
 
-                                    {gitStatus.remote_url && (
+                                    {/* {gitStatus.remote_url && (
                                         <Button variant="outline" size="sm" className="w-full text-xs gap-2" onClick={handleOpenRemote}>
                                             <ExternalLink className="w-3 h-3" />
                                             Open Remote
                                         </Button>
-                                    )}
+                                    )} */}
                                 </div>
                             ) : (
                                 <div className="flex flex-col items-center justify-center py-6 text-muted-foreground space-y-2">

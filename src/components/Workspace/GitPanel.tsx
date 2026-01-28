@@ -91,47 +91,56 @@ export const GitPanel: React.FC<GitPanelProps> = ({ path }) => {
                 </Button>
             </div>
             
-            <div className="flex-1 overflow-auto p-4 bg-background relative h-full w-full">
+            <div className="flex-1 h-0 overflow-y-auto min-h-0 p-4 bg-background relative w-full">
                 {loading && commits.length === 0 ? (
                      <div className="absolute inset-0 flex flex-col items-center justify-center text-muted-foreground">
                         Loading history...
                     </div>
                 ) : commits.length > 0 && !graphError ? (
                     <ErrorBoundary onError={() => setGraphError(true)}>
-                        <Gitgraph options={{
-                            template: templateExtend(TemplateName.Metro, {
-                                colors: ["#3b82f6", "#10b981", "#f59e0b", "#ef4444"],
-                                commit: {
-                                    message: {
-                                        displayAuthor: true,
-                                        displayHash: true,
-                                        font: "normal 12px sans-serif",
-                                        color: "#888888" 
+                        <div className="min-w-fit pr-8 pl-6 pb-12">
+                            <Gitgraph options={{
+                                template: templateExtend(TemplateName.Metro, {
+                                    colors: ["#3b82f6", "#10b981", "#f59e0b", "#ef4444"],
+                                    commit: {
+                                        message: {
+                                            displayAuthor: true,
+                                            displayHash: true,
+                                            font: "normal 12px sans-serif",
+                                            color: "#888888" 
+                                        },
+                                        spacing: 40, // Increase vertical spacing
                                     },
-                                },
-                            }),
-                            orientation: Orientation.VerticalReverse,
-                        }}>
-                            {(gitgraph) => {
-                                // GitGraph expects commits in chronological order (oldest to newest) to build the graph correctly
-                                const importData = [...commits].reverse().map(c => {
-                                    // Clean refs: remove parens containing (HEAD -> main, origin/main)
-                                    const cleanRefs = c.refs 
-                                        ? c.refs.replace(/[()]/g, '').split(',').map(r => r.trim()).filter(Boolean)
-                                        : [];
-                                        
-                                    return {
-                                        hash: c.hash,
-                                        subject: c.message,
-                                        author: { name: c.author, email: "" },
-                                        date: c.date,
-                                        refs: cleanRefs,
-                                        parents: c.parents.filter(Boolean)
-                                    };
-                                });
-                                gitgraph.import(importData);
-                            }}
-                        </Gitgraph>
+                                    branch: {
+                                        spacing: 20, // Increase horizontal branch spacing
+                                        label: {
+                                            font: "normal 12px sans-serif"
+                                        }
+                                    }
+                                }),
+                                orientation: Orientation.VerticalReverse,
+                            }}>
+                                {(gitgraph) => {
+                                    // GitGraph expects commits in chronological order (oldest to newest) to build the graph correctly
+                                    const importData = [...commits].reverse().map(c => {
+                                        // Clean refs: remove parens containing (HEAD -> main, origin/main)
+                                        const cleanRefs = c.refs 
+                                            ? c.refs.replace(/[()]/g, '').split(',').map(r => r.trim()).filter(Boolean)
+                                            : [];
+                                            
+                                        return {
+                                            hash: c.hash,
+                                            subject: c.message,
+                                            author: { name: c.author, email: "" },
+                                            date: c.date,
+                                            refs: cleanRefs,
+                                            parents: c.parents.filter(Boolean)
+                                        };
+                                    });
+                                    gitgraph.import(importData);
+                                }}
+                            </Gitgraph>
+                        </div>
                     </ErrorBoundary>
                 ) : (
                     <div className="absolute inset-0 flex flex-col items-center justify-center text-muted-foreground">

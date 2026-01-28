@@ -28,8 +28,16 @@ fn new_command(program: &str) -> Command {
 
 pub fn get_git_status(path: &str) -> Result<Option<GitStatus>> {
     let repo_path = Path::new(path);
-    if !repo_path.join(".git").exists() {
-        return Ok(None);
+    
+    // Check if it's a git repo using git command (more robust than checking .git folder)
+    let output = new_command("git")
+        .args(&["rev-parse", "--is-inside-work-tree"])
+        .current_dir(repo_path)
+        .output();
+
+    match output {
+        Ok(o) if o.status.success() => {},
+        _ => return Ok(None), // Not a git repo
     }
 
     // Get branch
@@ -38,16 +46,20 @@ pub fn get_git_status(path: &str) -> Result<Option<GitStatus>> {
         .current_dir(repo_path)
         .output()?;
     
-    let branch = String::from_utf8_lossy(&output.stdout).trim().to_string();
+    let mut branch = String::from_utf8_lossy(&output.stdout).trim().to_string();
     if branch.is_empty() {
-        // Detached HEAD or error, try rev-parse
+        // Detached HEAD or fresh repo
         let output = new_command("git")
             .args(&["rev-parse", "--short", "HEAD"])
             .current_dir(repo_path)
             .output()?;
         let hash = String::from_utf8_lossy(&output.stdout).trim().to_string();
-        if hash.is_empty() {
-            return Ok(None); // Not a valid git repo state or empty
+        
+        if !hash.is_empty() {
+            branch = hash;
+        } else {
+            // Unborn branch (empty repo), usually "main" or "master" default
+            branch = "HEAD (unborn)".to_string();
         }
     }
 
@@ -126,8 +138,16 @@ pub struct Commit {
 
 pub fn get_git_history(path: &str, limit: usize) -> Result<Vec<Commit>> {
     let repo_path = Path::new(path);
-    if !repo_path.join(".git").exists() {
-        return Ok(Vec::new());
+    
+    // Quick check if git works here
+    let check = new_command("git")
+        .args(&["rev-parse", "--is-inside-work-tree"])
+        .current_dir(repo_path)
+        .output();
+        
+    match check {
+         Ok(o) if o.status.success() => {},
+         _ => return Ok(Vec::new()),
     }
 
     // Format: %H|%|%P|%|%an|%|%aI|%|%s|%|%d
