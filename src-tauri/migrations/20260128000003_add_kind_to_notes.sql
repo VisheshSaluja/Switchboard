@@ -1,0 +1,1 @@
+ALTER TABLE project_notes ADD COLUMN kind TEXT NOT NULL DEFAULT 'text';

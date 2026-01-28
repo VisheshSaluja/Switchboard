@@ -189,15 +189,16 @@ impl ProjectRepository {
         Ok(())
     }
 
-    pub async fn create_note(&self, project_id: String, title: String, content: String, color: String) -> Result<ProjectNote> {
+    pub async fn create_note(&self, project_id: String, title: String, content: String, color: String, kind: String) -> Result<ProjectNote> {
         let id = Uuid::new_v4().to_string();
 
-        sqlx::query("INSERT INTO project_notes (id, project_id, title, content, color) VALUES (?, ?, ?, ?, ?)")
+        sqlx::query("INSERT INTO project_notes (id, project_id, title, content, color, kind) VALUES (?, ?, ?, ?, ?, ?)")
             .bind(&id)
             .bind(&project_id)
             .bind(&title)
             .bind(&content)
             .bind(&color)
+            .bind(&kind)
             .execute(&self.pool)
             .await?;
 
@@ -207,24 +208,26 @@ impl ProjectRepository {
             title,
             content,
             color,
+            kind,
             created_at: String::new(), 
             updated_at: String::new(),
         })
     }
 
     pub async fn get_project_notes(&self, project_id: &str) -> Result<Vec<ProjectNote>> {
-        let notes = sqlx::query_as::<_, ProjectNote>("SELECT id, project_id, title, content, color, created_at, updated_at FROM project_notes WHERE project_id = ? ORDER BY updated_at DESC")
+        let notes = sqlx::query_as::<_, ProjectNote>("SELECT id, project_id, title, content, color, kind, created_at, updated_at FROM project_notes WHERE project_id = ? ORDER BY updated_at DESC")
             .bind(project_id)
             .fetch_all(&self.pool)
             .await?;
         Ok(notes)
     }
 
-    pub async fn update_note(&self, id: &str, title: String, content: String, color: String) -> Result<()> {
-        sqlx::query("UPDATE project_notes SET title = ?, content = ?, color = ? WHERE id = ?")
+    pub async fn update_note(&self, id: &str, title: String, content: String, color: String, kind: String) -> Result<()> {
+        sqlx::query("UPDATE project_notes SET title = ?, content = ?, color = ?, kind = ? WHERE id = ?")
             .bind(title)
             .bind(content)
             .bind(color)
+            .bind(kind)
             .bind(id)
             .execute(&self.pool)
             .await?;

@@ -55,6 +55,8 @@ pub struct ProjectNote {
     pub content: String,
     pub color: String,
     #[sqlx(default)]
+    pub kind: String, // 'text' or 'canvas'
+    #[sqlx(default)]
     pub created_at: String,
     #[sqlx(default)]
     pub updated_at: String,

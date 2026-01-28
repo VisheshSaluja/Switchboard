@@ -195,9 +195,10 @@ pub async fn create_project_note(
     title: String,
     content: String,
     color: String,
+    kind: String,
 ) -> Result<crate::modules::projects::models::ProjectNote, String> {
     let service = ProjectService::new(pool.inner().clone());
-    service.create_note(project_id, title, content, color)
+    service.create_note(project_id, title, content, color, kind)
         .await
         .map_err(|e| e.to_string())
 }
@@ -209,9 +210,10 @@ pub async fn update_project_note(
     title: String,
     content: String,
     color: String,
+    kind: String,
 ) -> Result<(), String> {
     let service = ProjectService::new(pool.inner().clone());
-    service.update_note(&id, title, content, color)
+    service.update_note(&id, title, content, color, kind)
         .await
         .map_err(|e| e.to_string())
 }

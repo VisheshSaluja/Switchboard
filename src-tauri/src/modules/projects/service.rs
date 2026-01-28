@@ -113,16 +113,16 @@ impl ProjectService {
     }
     
     // Notes (Advanced)
-    pub async fn create_note(&self, project_id: String, title: String, content: String, color: String) -> Result<super::models::ProjectNote> {
-        self.repo.create_note(project_id, title, content, color).await
+    pub async fn create_note(&self, project_id: String, title: String, content: String, color: String, kind: String) -> Result<super::models::ProjectNote> {
+        self.repo.create_note(project_id, title, content, color, kind).await
     }
 
     pub async fn get_project_notes(&self, project_id: &str) -> Result<Vec<super::models::ProjectNote>> {
         self.repo.get_project_notes(project_id).await
     }
 
-    pub async fn update_note(&self, id: &str, title: String, content: String, color: String) -> Result<()> {
-        self.repo.update_note(id, title, content, color).await
+    pub async fn update_note(&self, id: &str, title: String, content: String, color: String, kind: String) -> Result<()> {
+        self.repo.update_note(id, title, content, color, kind).await
     }
 
     pub async fn delete_note(&self, id: &str) -> Result<()> {

@@ -2,11 +2,18 @@ import React, { useEffect, useState, useMemo } from 'react';
 import type { Project, ProjectNote, ProjectSettings, GitStatus } from '../../types';
 import { Button } from '../ui/button';
 import { Card, CardContent, CardHeader, CardTitle } from '../ui/card';
-import { Terminal, ScrollText, FolderOpen, GitBranch, ExternalLink, RefreshCw, ArrowUp, ArrowDown, Activity, Tag } from 'lucide-react';
+import { Terminal, ScrollText, FolderOpen, GitBranch, ExternalLink, RefreshCw, ArrowUp, ArrowDown, Activity, Tag, Cpu } from 'lucide-react';
 import { motion } from 'framer-motion';
 import { invokeCommand } from '../../lib/tauri';
 import { toast } from 'sonner';
 
+interface Process {
+    id: string;
+    command: string;
+    cwd: string;
+    running: boolean;
+    pid: number;
+}
 
 interface OverviewPanelProps {
     project: Project;
@@ -33,6 +40,7 @@ export const OverviewPanel: React.FC<OverviewPanelProps> = ({ project, onNavigat
     const [notes, setNotes] = useState<ProjectNote[]>([]);
     const [gitStatus, setGitStatus] = useState<GitStatus | null>(null);
     const [isGitLoading, setIsGitLoading] = useState(false);
+    const [processes, setProcesses] = useState<Process[]>([]);
 
     useEffect(() => {
         invokeCommand<ProjectNote[]>('get_project_notes', { projectId: project.id })
@@ -40,6 +48,11 @@ export const OverviewPanel: React.FC<OverviewPanelProps> = ({ project, onNavigat
             .catch(console.error);
         
         loadGitStatus();
+        loadProcesses();
+        
+        // Refresh processes periodically to keep status live
+        const interval = setInterval(loadProcesses, 3000);
+        return () => clearInterval(interval);
     }, [project.id, project.path]);
 
     const loadGitStatus = () => {
@@ -48,6 +61,17 @@ export const OverviewPanel: React.FC<OverviewPanelProps> = ({ project, onNavigat
             .then(setGitStatus)
             .catch(err => console.error("Git status failed", err))
             .finally(() => setIsGitLoading(false));
+    };
+
+    const loadProcesses = async () => {
+        try {
+            const data = await invokeCommand<Process[]>('get_active_processes', { projectId: project.id });
+            setProcesses(data.filter(p => p.running)); // Only show running ones or filtered by active state? Backend usually returns all tracked.
+            // Actually get_active_processes might return active ones? Or all? Let's assume all tracked.
+            // But we want to show "Running Processes".
+        } catch (e) {
+            console.error("Failed to load processes", e);
+        }
     };
 
     const labels = useMemo(() => {
@@ -95,6 +119,8 @@ export const OverviewPanel: React.FC<OverviewPanelProps> = ({ project, onNavigat
             toast.error("Failed to reveal directory");
         }
     };
+
+    const activeProcessCount = processes.filter(p => p.running).length;
 
     return (
         <div className="h-full w-full p-4 overflow-y-auto bg-muted/5 scrollbar-thin">
@@ -164,6 +190,29 @@ export const OverviewPanel: React.FC<OverviewPanelProps> = ({ project, onNavigat
                                     {notes.length === 0 ? "No notes yet" : `${notes.length} note${notes.length === 1 ? '' : 's'} recorded`}
                                 </p>
                                 <Button variant="secondary" size="sm" className="w-full h-8 text-xs">Manage Notes</Button>
+                            </CardContent>
+                        </Card>
+                    </motion.div>
+
+                    <motion.div whileHover={{ y: -1 }} transition={{ duration: 0.2 }}>
+                        <Card className="hover:border-primary/50 transition-colors cursor-pointer group shadow-sm h-full" onClick={() => onNavigate('processes')}>
+                            <CardHeader className="p-4 pb-2">
+                                <CardTitle className="text-sm font-medium flex items-center gap-2">
+                                    <Cpu className="w-4 h-4 text-green-500" />
+                                    Processes
+                                </CardTitle>
+                            </CardHeader>
+                            <CardContent className="p-4 pt-0">
+                                <div className="flex items-center gap-2 mb-3">
+                                    <span className="text-xs text-muted-foreground">{activeProcessCount > 0 ? `${activeProcessCount} active` : "Idle"}</span>
+                                    {activeProcessCount > 0 && (
+                                        <span className="flex h-2 w-2">
+                                            <span className="animate-ping absolute inline-flex h-2 w-2 rounded-full bg-green-400 opacity-75"></span>
+                                            <span className="relative inline-flex rounded-full h-2 w-2 bg-green-500"></span>
+                                        </span>
+                                    )}
+                                </div>
+                                <Button variant="secondary" size="sm" className="w-full h-8 text-xs">Manage Tasks</Button>
                             </CardContent>
                         </Card>
                     </motion.div>

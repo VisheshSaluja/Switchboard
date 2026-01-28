@@ -39,6 +39,7 @@ export interface ProjectNote {
     title: string;
     content: string;
     color: string;
+    kind: 'text' | 'canvas';
     created_at: string;
     updated_at: string;
 }

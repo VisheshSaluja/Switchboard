@@ -3,12 +3,14 @@ import { Button } from '../ui/button';
 import { Input } from '../ui/input';
 import { Card, CardContent } from '../ui/card';
 import { Dialog, DialogContent, DialogHeader, DialogTitle, DialogFooter, DialogDescription } from '../ui/dialog';
-import { Plus, Trash2, Calendar, Notebook, Loader2, Settings2, X } from 'lucide-react';
+import { Plus, Trash2, Calendar, Notebook, Loader2, Settings2, X, FileText, Presentation } from 'lucide-react';
 import { invokeCommand } from '../../lib/tauri';
 import { toast } from 'sonner';
 import { useAppStore } from '../../stores/useAppStore';
 import type { ProjectNote, ProjectSettings } from '../../types';
 import { Editor } from '../ui/editor';
+import { WhiteboardEditor } from '../ui/whiteboard';
+import { Tabs, TabsList, TabsTrigger } from '../ui/tabs';
 
 interface NotesPanelProps {
     projectId: string;
@@ -55,6 +57,7 @@ export const NotesPanel: React.FC<NotesPanelProps> = ({ projectId }) => {
     const [title, setTitle] = useState('');
     const [content, setContent] = useState('');
     const [color, setColor] = useState('yellow');
+    const [kind, setKind] = useState<'text' | 'canvas'>('text');
 
     // Settings State
     const [isSettingsOpen, setIsSettingsOpen] = useState(false);
@@ -76,7 +79,9 @@ export const NotesPanel: React.FC<NotesPanelProps> = ({ projectId }) => {
         setIsLoading(true);
         try {
             const data = await invokeCommand<ProjectNote[]>('get_project_notes', { projectId });
-            setNotes(data);
+            // Normalize kind if missing (for old notes)
+            const normalized = data.map(n => ({...n, kind: n.kind || 'text'}));
+            setNotes(normalized);
         } catch (e) {
             console.error(e);
             toast.error("Failed to load notes");
@@ -94,7 +99,8 @@ export const NotesPanel: React.FC<NotesPanelProps> = ({ projectId }) => {
         setTitle('');
         setContent('');
         setColor('yellow');
-        setViewMode('edit'); // New notes start in edit mode
+        setKind('text'); // Default to text
+        setViewMode('edit'); 
         setIsEditorOpen(true);
     };
 
@@ -103,14 +109,12 @@ export const NotesPanel: React.FC<NotesPanelProps> = ({ projectId }) => {
         setTitle(note.title);
         setContent(note.content);
         setColor(note.color);
-        setViewMode('view'); // Existing notes start in view mode
+        setKind(note.kind || 'text');
+        setViewMode('view');
         setIsEditorOpen(true);
     };
 
     const handleSave = async () => {
-        // Allow saving empty title if it's implicit? No, enforce title.
-        // But if we are closing, we shouldn't block.
-        // If title is empty, maybe default it to "Untitled Note"?
         let safeTitle = title.trim();
         if (!safeTitle) safeTitle = "Untitled Note";
 
@@ -120,19 +124,21 @@ export const NotesPanel: React.FC<NotesPanelProps> = ({ projectId }) => {
                     id: editingNote.id,
                     title: safeTitle,
                     content,
-                    color
+                    color,
+                    kind
                 });
                 toast.success("Note saved");
-                setViewMode('view'); // Switch to view mode
+                setViewMode('view');
             } else {
                 await invokeCommand('create_project_note', {
                     projectId,
                     title: safeTitle,
                     content,
-                    color
+                    color,
+                    kind
                 });
                 toast.success("Note created");
-                setIsEditorOpen(false); // Close since we can't easily switch to view without the new ID
+                setIsEditorOpen(false); 
             }
             fetchNotes(); 
         } catch (e) {
@@ -182,7 +188,7 @@ export const NotesPanel: React.FC<NotesPanelProps> = ({ projectId }) => {
                         Project Notes
                     </h2>
                     <p className="text-sm text-muted-foreground">
-                        Keep track of ideas, bugs, and requirements.
+                        Keep track of ideas, bugs, and designs.
                     </p>
                 </div>
                 <div className="flex gap-2 items-center">
@@ -243,6 +249,7 @@ export const NotesPanel: React.FC<NotesPanelProps> = ({ projectId }) => {
                         {filteredNotes.map(note => {
                             const style = getColorStyle(note.color);
                             const label = labels[note.color] || 'Note';
+                            const isCanvas = note.kind === 'canvas';
                             
                             return (
                                 <Card 
@@ -254,7 +261,8 @@ export const NotesPanel: React.FC<NotesPanelProps> = ({ projectId }) => {
                                     <CardContent className="p-4 space-y-2 flex-1 flex flex-col overflow-hidden">
                                         <div className="flex justify-between items-start shrink-0">
                                             <div className="space-y-1 overflow-hidden">
-                                                <div className="text-[10px] uppercase font-bold tracking-wider opacity-60">
+                                                <div className="text-[10px] uppercase font-bold tracking-wider opacity-60 flex items-center gap-1">
+                                                    {isCanvas ? <Presentation className="w-3 h-3" /> : <FileText className="w-3 h-3" />}
                                                     {label}
                                                 </div>
                                                 <h3 className="font-semibold leading-tight truncate pr-1">{note.title}</h3>
@@ -275,15 +283,21 @@ export const NotesPanel: React.FC<NotesPanelProps> = ({ projectId }) => {
                                         </div>
                                         
                                         {/* Content Preview */}
-                                        <div 
-                                            className="flex-1 overflow-hidden relative text-sm text-muted-foreground"
-                                        >
-                                            <div 
-                                                className="prose prose-sm dark:prose-invert max-w-none prose-p:my-1 prose-headings:my-2 prose-blockquote:my-1 text-[13px] leading-relaxed opacity-80 pointer-events-none"
-                                                dangerouslySetInnerHTML={{ __html: note.content }} 
-                                            />
-                                            {/* Gradient fade */}
-                                            <div className="absolute inset-x-0 bottom-0 h-10 bg-gradient-to-t from-background/10 to-transparent" />
+                                        <div className="flex-1 overflow-hidden relative text-sm text-muted-foreground">
+                                            {isCanvas ? (
+                                                <div className="flex items-center justify-center h-full opacity-50 bg-background/50 rounded-md">
+                                                    <div className="text-center">
+                                                        <Presentation className="w-8 h-8 mx-auto mb-1 opacity-50" />
+                                                        <span className="text-xs">Whiteboard Canvas</span>
+                                                    </div>
+                                                </div>
+                                            ) : (
+                                                <div 
+                                                    className="prose prose-sm dark:prose-invert max-w-none prose-p:my-1 prose-headings:my-2 prose-blockquote:my-1 text-[13px] leading-relaxed opacity-80 pointer-events-none"
+                                                    dangerouslySetInnerHTML={{ __html: note.content }} 
+                                                />
+                                            )}
+                                            {!isCanvas && <div className="absolute inset-x-0 bottom-0 h-10 bg-gradient-to-t from-background/10 to-transparent" />}
                                         </div>
 
                                         <div className="pt-2 flex items-center text-[10px] text-muted-foreground/70 gap-1 shrink-0 border-t border-border/10 mt-1">
@@ -303,16 +317,21 @@ export const NotesPanel: React.FC<NotesPanelProps> = ({ projectId }) => {
                 open={isEditorOpen} 
                 onOpenChange={(open) => {
                     if (!open && viewMode === 'edit') {
-                        // Implicit save on close
+                        // Implicit save
                         handleSave(); 
                     }
                     setIsEditorOpen(open);
                 }}
             >
-                <DialogContent className="max-w-4xl max-h-[90vh] h-[80vh] flex flex-col p-6">
+                <DialogContent className="max-w-6xl max-h-[95vh] h-[90vh] flex flex-col p-6">
                     <DialogHeader>
                         <DialogTitle className="flex items-center gap-2">
-                             {viewMode === 'edit' ? (editingNote ? 'Edit Note' : 'New Note') : 'Note Details'}
+                             {viewMode === 'edit' ? (editingNote ? 'Edit Note' : 'New Note') : (
+                                <span className="flex items-center gap-2">
+                                    {kind === 'canvas' ? <Presentation className="w-4 h-4 text-primary" /> : <FileText className="w-4 h-4 text-primary" />}
+                                    Note Details
+                                </span>
+                             )}
                         </DialogTitle>
                     </DialogHeader>
                     
@@ -321,7 +340,18 @@ export const NotesPanel: React.FC<NotesPanelProps> = ({ projectId }) => {
                             <div className="flex-1 space-y-1">
                                 {viewMode === 'edit' ? (
                                     <>
-                                        <label className="text-xs font-semibold uppercase tracking-wider text-muted-foreground">Title</label>
+                                        <div className="flex items-center justify-between mb-1">
+                                             <label className="text-xs font-semibold uppercase tracking-wider text-muted-foreground">Title</label>
+                                             {/* Only show toggle for NEW notes */}
+                                             {!editingNote && (
+                                                <Tabs value={kind} onValueChange={(v: any) => setKind(v)} className="h-6">
+                                                    <TabsList className="h-6 p-0 bg-muted/50">
+                                                        <TabsTrigger value="text" className="text-xs px-2 h-5">Text</TabsTrigger>
+                                                        <TabsTrigger value="canvas" className="text-xs px-2 h-5">Canvas</TabsTrigger>
+                                                    </TabsList>
+                                                </Tabs>
+                                             )}
+                                        </div>
                                         <Input 
                                             className="text-lg font-semibold"
                                             placeholder="Note Title" 
@@ -353,14 +383,22 @@ export const NotesPanel: React.FC<NotesPanelProps> = ({ projectId }) => {
                             </div>
                         </div>
 
-                        <div className={`flex-1 overflow-hidden flex flex-col relative ${viewMode === 'view' ? '' : 'border rounded-lg bg-background/50'}`}>
-                            <Editor 
-                                content={content} 
-                                onChange={setContent} 
-                                projectId={projectId}
-                                editable={viewMode === 'edit'}
-                                className={viewMode === 'view' ? 'prose-headings:mt-0 px-0' : ''}
-                            />
+                        <div className={`flex-1 overflow-hidden flex flex-col relative ${viewMode === 'view' && kind === 'text' ? '' : 'border rounded-lg bg-background'}`}>
+                            {kind === 'canvas' ? (
+                                <WhiteboardEditor 
+                                    initialData={content} 
+                                    onChange={setContent}
+                                    editable={viewMode === 'edit'}
+                                />
+                            ) : (
+                                <Editor 
+                                    content={content} 
+                                    onChange={setContent} 
+                                    projectId={projectId}
+                                    editable={viewMode === 'edit'}
+                                    className={viewMode === 'view' ? 'prose-headings:mt-0 px-0' : ''}
+                                />
+                            )}
                         </div>
                     </div>
 
@@ -378,7 +416,7 @@ export const NotesPanel: React.FC<NotesPanelProps> = ({ projectId }) => {
                         ) : (
                             <>
                                 <p className="text-xs italic opacity-70">
-                                    Changes are saved automatically
+                                    {kind === 'canvas' ? "Drawings auto-save" : "Changes are saved automatically"}
                                 </p>
                                 <div className="flex gap-2">
                                     <Button onClick={handleSave}>Done</Button>
