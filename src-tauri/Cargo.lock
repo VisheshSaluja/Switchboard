@@ -110,6 +110,7 @@ name = "app"
 version = "0.1.0"
 dependencies = [
  "anyhow",
+ "base64 0.22.1",
  "dirs 5.0.1",
  "dotenv",
  "keyring",
@@ -125,6 +126,7 @@ dependencies = [
  "tauri",
  "tauri-build",
  "tauri-plugin-dialog",
+ "tauri-plugin-fs",
  "tauri-plugin-log",
  "tauri-plugin-shell",
  "tokio",

@@ -167,4 +167,34 @@ impl ProjectService {
 
         Ok(scripts)
     }
+
+    pub async fn save_note_image(&self, project_id: &str, file_name: String, file_data: String) -> Result<String> {
+        use base64::{Engine as _, engine::general_purpose};
+        use std::io::Write;
+
+        // Get project path
+        let project = self.repo.get_project(project_id).await?;
+        if let Some(proj) = project {
+            let project_path = crate::shared::utils::expand_path(&proj.path);
+            let images_dir = Path::new(&project_path).join(".switchboard").join("images");
+
+            // Create dir
+            if !images_dir.exists() {
+                fs::create_dir_all(&images_dir)?;
+            }
+
+            // Decode base64
+            let bytes = general_purpose::STANDARD.decode(file_data)?;
+
+            // Save file
+            let file_path = images_dir.join(&file_name);
+            let mut file = fs::File::create(&file_path)?;
+            file.write_all(&bytes)?;
+
+            // Return absolute path
+            Ok(file_path.to_string_lossy().to_string())
+        } else {
+             Err(anyhow::anyhow!("Project not found"))
+        }
+    }
 }

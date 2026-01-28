@@ -20,7 +20,10 @@
       }
     ],
     "security": {
-      "csp": null
+      "capabilities": [
+        "default"
+      ],
+      "csp": "default-src 'self' 'unsafe-inline' 'unsafe-eval'; img-src 'self' blob: data: asset: http://asset.localhost https://asset.localhost"
     }
   },
   "bundle": {

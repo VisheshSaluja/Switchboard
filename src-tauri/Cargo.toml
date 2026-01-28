@@ -34,6 +34,8 @@ dirs = "5.0"
 portable-pty = "0.8"
 tauri-plugin-shell = "2"
 tauri-plugin-dialog = "2.4.2"
+tauri-plugin-fs = "2"
+base64 = "0.22.1"
 
 [target.'cfg(target_os = "macos")'.dependencies]
 localauthentication-rs = "0.1.0"

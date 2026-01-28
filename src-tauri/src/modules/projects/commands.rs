@@ -250,6 +250,19 @@ pub async fn update_project_settings(
         .map_err(|e| e.to_string())
 }
 
+#[command]
+pub async fn save_project_note_image(
+    pool: State<'_, SqlitePool>,
+    project_id: String,
+    file_name: String,
+    file_data: String,
+) -> Result<String, String> {
+    let service = ProjectService::new(pool.inner().clone());
+    service.save_note_image(&project_id, file_name, file_data)
+        .await
+        .map_err(|e| e.to_string())
+}
+
 // Git & FS
 #[command]
 pub async fn get_git_status(path: String) -> Result<Option<crate::modules::git::GitStatus>, String> {

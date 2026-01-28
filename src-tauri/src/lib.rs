@@ -19,8 +19,8 @@ pub fn run() {
       }
       
       app.handle().plugin(tauri_plugin_shell::init())?;
-      app.handle().plugin(tauri_plugin_shell::init())?;
       app.handle().plugin(tauri_plugin_dialog::init())?;
+      app.handle().plugin(tauri_plugin_fs::init())?;
 
       // Initialize Database
       let app_handle = app.handle();
@@ -67,6 +67,7 @@ pub fn run() {
         modules::projects::commands::update_project_note,
         modules::projects::commands::delete_project_note,
         modules::projects::commands::get_project_notes,
+        modules::projects::commands::save_project_note_image,
         modules::projects::commands::update_project_settings,
         modules::projects::commands::get_git_status,
         modules::projects::commands::git_clone,

@@ -1,7 +1,6 @@
 import React, { useEffect, useState, useMemo } from 'react';
 import { Button } from '../ui/button';
 import { Input } from '../ui/input';
-import { Textarea } from '../ui/textarea';
 import { Card, CardContent } from '../ui/card';
 import { Dialog, DialogContent, DialogHeader, DialogTitle, DialogFooter, DialogDescription } from '../ui/dialog';
 import { Plus, Trash2, Calendar, Notebook, Loader2, Settings2, X } from 'lucide-react';
@@ -9,6 +8,7 @@ import { invokeCommand } from '../../lib/tauri';
 import { toast } from 'sonner';
 import { useAppStore } from '../../stores/useAppStore';
 import type { ProjectNote, ProjectSettings } from '../../types';
+import { Editor } from '../ui/editor';
 
 interface NotesPanelProps {
     projectId: string;
@@ -50,6 +50,7 @@ export const NotesPanel: React.FC<NotesPanelProps> = ({ projectId }) => {
 
     // Editor State
     const [isEditorOpen, setIsEditorOpen] = useState(false);
+    const [viewMode, setViewMode] = useState<'view' | 'edit'>('view');
     const [editingNote, setEditingNote] = useState<ProjectNote | null>(null);
     const [title, setTitle] = useState('');
     const [content, setContent] = useState('');
@@ -93,42 +94,46 @@ export const NotesPanel: React.FC<NotesPanelProps> = ({ projectId }) => {
         setTitle('');
         setContent('');
         setColor('yellow');
+        setViewMode('edit'); // New notes start in edit mode
         setIsEditorOpen(true);
     };
 
-    const handleEdit = (note: ProjectNote) => {
+    const handleOpenNote = (note: ProjectNote) => {
         setEditingNote(note);
         setTitle(note.title);
         setContent(note.content);
         setColor(note.color);
+        setViewMode('view'); // Existing notes start in view mode
         setIsEditorOpen(true);
     };
 
     const handleSave = async () => {
-        if (!title.trim()) {
-            toast.error("Title is required");
-            return;
-        }
+        // Allow saving empty title if it's implicit? No, enforce title.
+        // But if we are closing, we shouldn't block.
+        // If title is empty, maybe default it to "Untitled Note"?
+        let safeTitle = title.trim();
+        if (!safeTitle) safeTitle = "Untitled Note";
 
         try {
             if (editingNote) {
                 await invokeCommand('update_project_note', {
                     id: editingNote.id,
-                    title,
+                    title: safeTitle,
                     content,
                     color
                 });
-                toast.success("Note updated");
+                toast.success("Note saved");
+                setViewMode('view'); // Switch to view mode
             } else {
                 await invokeCommand('create_project_note', {
                     projectId,
-                    title,
+                    title: safeTitle,
                     content,
                     color
                 });
                 toast.success("Note created");
+                setIsEditorOpen(false); // Close since we can't easily switch to view without the new ID
             }
-            setIsEditorOpen(false);
             fetchNotes(); 
         } catch (e) {
             console.error(e);
@@ -242,17 +247,17 @@ export const NotesPanel: React.FC<NotesPanelProps> = ({ projectId }) => {
                             return (
                                 <Card 
                                     key={note.id} 
-                                    className={`group cursor-pointer transition-all hover:scale-[1.02] hover:shadow-md ${style.bg} ${style.border} border`}
-                                    onClick={() => handleEdit(note)}
+                                    className={`group cursor-pointer transition-all hover:scale-[1.02] hover:shadow-md ${style.bg} ${style.border} border h-[240px] flex flex-col`}
+                                    onClick={() => handleOpenNote(note)}
                                 >
                                     <div className={`h-1 w-full rounded-t-lg ${style.indicator}`} />
-                                    <CardContent className="p-4 space-y-2">
-                                        <div className="flex justify-between items-start">
-                                            <div className="space-y-1">
+                                    <CardContent className="p-4 space-y-2 flex-1 flex flex-col overflow-hidden">
+                                        <div className="flex justify-between items-start shrink-0">
+                                            <div className="space-y-1 overflow-hidden">
                                                 <div className="text-[10px] uppercase font-bold tracking-wider opacity-60">
                                                     {label}
                                                 </div>
-                                                <h3 className="font-semibold leading-tight line-clamp-1">{note.title}</h3>
+                                                <h3 className="font-semibold leading-tight truncate pr-1">{note.title}</h3>
                                             </div>
                                             <div className="opacity-0 group-hover:opacity-100 transition-opacity">
                                                  <Button 
@@ -268,10 +273,20 @@ export const NotesPanel: React.FC<NotesPanelProps> = ({ projectId }) => {
                                                 </Button>
                                             </div>
                                         </div>
-                                        <p className="text-sm text-muted-foreground line-clamp-4 font-mono whitespace-pre-wrap">
-                                            {note.content || <span className="italic opacity-50">Empty note...</span>}
-                                        </p>
-                                        <div className="pt-2 flex items-center text-[10px] text-muted-foreground/70 gap-1">
+                                        
+                                        {/* Content Preview */}
+                                        <div 
+                                            className="flex-1 overflow-hidden relative text-sm text-muted-foreground"
+                                        >
+                                            <div 
+                                                className="prose prose-sm dark:prose-invert max-w-none prose-p:my-1 prose-headings:my-2 prose-blockquote:my-1 text-[13px] leading-relaxed opacity-80 pointer-events-none"
+                                                dangerouslySetInnerHTML={{ __html: note.content }} 
+                                            />
+                                            {/* Gradient fade */}
+                                            <div className="absolute inset-x-0 bottom-0 h-10 bg-gradient-to-t from-background/10 to-transparent" />
+                                        </div>
+
+                                        <div className="pt-2 flex items-center text-[10px] text-muted-foreground/70 gap-1 shrink-0 border-t border-border/10 mt-1">
                                             <Calendar className="w-3 h-3" />
                                             {note.updated_at} 
                                         </div>
@@ -284,54 +299,93 @@ export const NotesPanel: React.FC<NotesPanelProps> = ({ projectId }) => {
             </div>
 
             {/* Editor Dialog */}
-            <Dialog open={isEditorOpen} onOpenChange={setIsEditorOpen}>
-                <DialogContent className="max-w-2xl max-h-[85vh] flex flex-col">
+            <Dialog 
+                open={isEditorOpen} 
+                onOpenChange={(open) => {
+                    if (!open && viewMode === 'edit') {
+                        // Implicit save on close
+                        handleSave(); 
+                    }
+                    setIsEditorOpen(open);
+                }}
+            >
+                <DialogContent className="max-w-4xl max-h-[90vh] h-[80vh] flex flex-col p-6">
                     <DialogHeader>
-                        <DialogTitle>{editingNote ? 'Edit Note' : 'New Note'}</DialogTitle>
+                        <DialogTitle className="flex items-center gap-2">
+                             {viewMode === 'edit' ? (editingNote ? 'Edit Note' : 'New Note') : 'Note Details'}
+                        </DialogTitle>
                     </DialogHeader>
                     
-                    <div className="flex-1 overflow-y-auto py-2 space-y-4">
-                        <div className="space-y-2">
-                            <label className="text-sm font-medium">Title</label>
-                            <Input 
-                                placeholder="Note Title" 
-                                value={title}
-                                onChange={e => setTitle(e.target.value)}
-                                autoFocus
-                            />
-                        </div>
+                    <div className="flex-1 flex flex-col space-y-4 overflow-hidden">
+                        <div className="flex gap-4">
+                            <div className="flex-1 space-y-1">
+                                {viewMode === 'edit' ? (
+                                    <>
+                                        <label className="text-xs font-semibold uppercase tracking-wider text-muted-foreground">Title</label>
+                                        <Input 
+                                            className="text-lg font-semibold"
+                                            placeholder="Note Title" 
+                                            value={title}
+                                            onChange={e => setTitle(e.target.value)}
+                                            autoFocus
+                                        />
+                                    </>
+                                ) : (
+                                    <h1 className="text-2xl font-bold tracking-tight py-2">{title}</h1>
+                                )}
+                            </div>
 
-                        <div className="space-y-2">
-                            <label className="text-sm font-medium">Category</label>
-                            <div className="flex gap-2 flex-wrap">
-                                {COLORS.map(c => (
-                                    <button
-                                        key={c.id}
-                                        onClick={() => setColor(c.id)}
-                                        className={`px-3 py-1.5 rounded-full border text-xs font-medium transition-all flex items-center gap-2 ${c.bg} ${c.border} ${color === c.id ? 'ring-2 ring-primary ring-offset-1' : ''}`}
-                                    >
-                                        <span className={`w-2 h-2 rounded-full ${c.indicator}`} />
-                                        {labels[c.id] || c.id}
-                                    </button>
-                                ))}
+                            <div className="space-y-1 shrink-0">
+                                {viewMode === 'edit' && <label className="text-xs font-semibold uppercase tracking-wider text-muted-foreground">Category</label>}
+                                <div className="flex gap-2 items-center h-full">
+                                    {COLORS.map(c => (
+                                        <button
+                                            key={c.id}
+                                            onClick={() => viewMode === 'edit' && setColor(c.id)}
+                                            className={`w-9 h-9 rounded-full border text-xs font-medium transition-all flex items-center justify-center ${c.bg} ${c.border} ${color === c.id ? 'ring-2 ring-primary ring-offset-2 scale-110' : 'opacity-70 hover:opacity-100 scale-100'} ${viewMode === 'view' && color !== c.id ? 'hidden' : ''} ${viewMode === 'view' ? 'cursor-default ring-0 scale-100' : ''}`}
+                                            title={labels[c.id]}
+                                            disabled={viewMode === 'view'}
+                                        >
+                                            <span className={`w-3 h-3 rounded-full ${c.indicator}`} />
+                                        </button>
+                                    ))}
+                                </div>
                             </div>
                         </div>
 
-                        <div className="space-y-2 flex-1 flex flex-col min-h-[200px]">
-                            <label className="text-sm font-medium">Content</label>
-                            <Textarea 
-                                placeholder="Write something..." 
-                                value={content}
-                                onChange={e => setContent(e.target.value)}
-                                className="flex-1 font-mono text-sm resize-none"
+                        <div className={`flex-1 overflow-hidden flex flex-col relative ${viewMode === 'view' ? '' : 'border rounded-lg bg-background/50'}`}>
+                            <Editor 
+                                content={content} 
+                                onChange={setContent} 
+                                projectId={projectId}
+                                editable={viewMode === 'edit'}
+                                className={viewMode === 'view' ? 'prose-headings:mt-0 px-0' : ''}
                             />
                         </div>
                     </div>
 
-                    <DialogFooter>
-                        <Button variant="outline" onClick={() => setIsEditorOpen(false)}>Cancel</Button>
-                        <Button onClick={handleSave}>Save Note</Button>
-                    </DialogFooter>
+                    <div className="mt-2 text-sm text-muted-foreground w-full flex justify-between items-center">
+                        {viewMode === 'view' ? (
+                            <>
+                                <p className="text-xs">
+                                    Last updated: {editingNote?.updated_at}
+                                </p>
+                                <div className="flex gap-2">
+                                    <Button variant="outline" onClick={() => setIsEditorOpen(false)}>Close</Button>
+                                    <Button onClick={() => setViewMode('edit')}>Edit Note</Button>
+                                </div>
+                            </>
+                        ) : (
+                            <>
+                                <p className="text-xs italic opacity-70">
+                                    Changes are saved automatically
+                                </p>
+                                <div className="flex gap-2">
+                                    <Button onClick={handleSave}>Done</Button>
+                                </div>
+                            </>
+                        )}
+                    </div>
                 </DialogContent>
             </Dialog>
 
