@@ -12,9 +12,10 @@ interface ProjectScript {
 
 interface ScriptRunnerProps {
     path: string;
+    onNavigate: (tab: string) => void;
 }
 
-export const ScriptRunner: React.FC<ScriptRunnerProps> = ({ path }) => {
+export const ScriptRunner: React.FC<ScriptRunnerProps> = ({ path, onNavigate }) => {
     const [scripts, setScripts] = useState<ProjectScript[]>([]);
     const [loading, setLoading] = useState(false);
     const [runningScript, setRunningScript] = useState<string | null>(null);
@@ -39,21 +40,23 @@ export const ScriptRunner: React.FC<ScriptRunnerProps> = ({ path }) => {
     const runScript = async (script: ProjectScript) => {
         setRunningScript(script.name);
         try {
-            // Use open_external_terminal to run the command
-            // We need to determine the command runner based on source
+            // Determine the command runner based on source
             let fullCommand = script.command;
             
             if (script.source === 'package.json') {
                 fullCommand = `npm run ${script.name}`;
             }
 
-            // We use the existing terminal command
-            await invokeCommand('open_external_terminal', { 
+            // Use the internal process manager
+            await invokeCommand('start_process', { 
                 cwd: path, 
                 command: fullCommand 
             });
             
             toast.success(`Started: ${script.name}`);
+            
+            // Switch to processes tab to show output
+            onNavigate('processes');
         } catch (e) {
             console.error(e);
             toast.error(`Failed to run ${script.name}`);

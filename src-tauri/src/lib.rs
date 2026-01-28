@@ -32,6 +32,10 @@ pub fn run() {
       let terminal_sessions: modules::terminal::models::TerminalSessions = Arc::new(Mutex::new(HashMap::new()));
       app_handle.manage(terminal_sessions);
 
+      // Initialize Process State
+      let process_state: modules::processes::models::ProcessState = Arc::new(Mutex::new(HashMap::new()));
+      app_handle.manage(process_state);
+
       tauri::async_runtime::block_on(async {
           let pool = database::init_pool(&app_data_dir).await.expect("failed to init database");
           
@@ -67,6 +71,7 @@ pub fn run() {
         modules::projects::commands::update_project_note,
         modules::projects::commands::delete_project_note,
         modules::projects::commands::get_project_notes,
+        modules::projects::commands::get_project_scripts,
         modules::projects::commands::save_project_note_image,
         modules::projects::commands::update_project_settings,
         modules::projects::commands::get_git_status,
@@ -78,6 +83,13 @@ pub fn run() {
         modules::terminal::commands::write_to_shell,
         modules::terminal::commands::resize_shell,
         modules::terminal::commands::open_external_terminal,
+        // Process Manager
+        modules::processes::commands::start_process,
+        modules::processes::commands::write_to_process,
+        modules::processes::commands::resize_process,
+        modules::processes::commands::stop_process,
+        modules::processes::commands::get_process_history,
+        modules::processes::commands::get_active_processes,
     ])
     .run(tauri::generate_context!())
     .expect("error while running tauri application");

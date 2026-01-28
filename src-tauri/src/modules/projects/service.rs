@@ -136,10 +136,14 @@ impl ProjectService {
 
         // 1. package.json (Node.js)
         let package_json_path = path_obj.join("package.json");
+        println!("Checking scripts at: {:?}", package_json_path);
+        
         if package_json_path.exists() {
-            if let Ok(content) = fs::read_to_string(package_json_path) {
+            println!("Found package.json");
+            if let Ok(content) = fs::read_to_string(&package_json_path) {
                 if let Ok(json) = serde_json::from_str::<Value>(&content) {
                     if let Some(scripts_obj) = json["scripts"].as_object() {
+                        println!("Found scripts object with {} entries", scripts_obj.len());
                         for (name, cmd) in scripts_obj {
                             if let Some(cmd_str) = cmd.as_str() {
                                 scripts.push(ProjectScript {
@@ -149,9 +153,17 @@ impl ProjectService {
                                 });
                             }
                         }
+                    } else {
+                        println!("No 'scripts' key in package.json");
                     }
+                } else {
+                    println!("Failed to parse package.json as JSON");
                 }
+            } else {
+                println!("Failed to read package.json content");
             }
+        } else {
+            println!("package.json does not exist at path");
         }
         
         // 2. Makefile (Generic)

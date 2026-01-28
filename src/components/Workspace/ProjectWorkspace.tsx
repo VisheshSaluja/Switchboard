@@ -7,8 +7,9 @@ import { KeysPanel } from './KeysPanel';
 import { SnippetsPanel } from './SnippetsPanel';
 import { NotesPanel } from './NotesPanel';
 import { ScriptRunner } from './ScriptRunner';
+import { ProcessManager } from './ProcessManager';
 import type { Project } from '../../types';
-import { FolderOpen, ScrollText, Play, LayoutDashboard, Lock, GitBranch } from 'lucide-react';
+import { FolderOpen, ScrollText, Play, LayoutDashboard, Lock, GitBranch, Terminal } from 'lucide-react';
 import { toast } from 'sonner';
 
 interface ProjectWorkspaceProps {
@@ -74,6 +75,10 @@ export const ProjectWorkspace: React.FC<ProjectWorkspaceProps> = ({ project, onC
                                     <ScrollText className="w-3.5 h-3.5" />
                                     Notes
                                 </TabsTrigger>
+                                <TabsTrigger value="processes" className="gap-2">
+                                    <Terminal className="w-3.5 h-3.5" />
+                                    Processes
+                                </TabsTrigger>
                             </TabsList>
                         </div>
                         
@@ -84,7 +89,7 @@ export const ProjectWorkspace: React.FC<ProjectWorkspaceProps> = ({ project, onC
                             
                             <div className={activeTab === 'scripts' ? 'h-full' : 'hidden h-full'}>
                                 {activeTab === 'scripts' && (
-                                    <ScriptRunner path={project.path} />
+                                    <ScriptRunner path={project.path} onNavigate={setActiveTab} />
                                 )}
                             </div>
 
@@ -116,6 +121,12 @@ export const ProjectWorkspace: React.FC<ProjectWorkspaceProps> = ({ project, onC
                                     <NotesPanel 
                                         projectId={project.id} 
                                     />
+                                )}
+                            </div>
+
+                            <div className={activeTab === 'processes' ? 'h-full' : 'hidden h-full'}>
+                                {activeTab === 'processes' && (
+                                    <ProcessManager path={project.path} />
                                 )}
                             </div>
                         </div>
