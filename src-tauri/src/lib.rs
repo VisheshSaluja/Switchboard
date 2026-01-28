@@ -95,6 +95,13 @@ pub fn run() {
         modules::processes::commands::stop_process,
         modules::processes::commands::get_process_history,
         modules::processes::commands::get_active_processes,
+        // Database Manager
+        modules::databases::commands::create_connection,
+        modules::databases::commands::get_connections,
+        modules::databases::commands::delete_connection,
+        modules::databases::commands::test_connection,
+        modules::databases::commands::execute_query,
+        modules::databases::commands::get_tables,
     ])
     .run(tauri::generate_context!())
     .expect("error while running tauri application");

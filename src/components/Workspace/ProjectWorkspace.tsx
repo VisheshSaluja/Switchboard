@@ -9,8 +9,9 @@ import { NotesPanel } from './NotesPanel';
 import { ScriptRunner } from './ScriptRunner';
 import { ProcessManager } from './ProcessManager';
 import { LaunchpadPanel } from './LaunchpadPanel';
+import { DatabasePanel } from './DatabasePanel';
 import type { Project } from '../../types';
-import { FolderOpen, ScrollText, Play, LayoutDashboard, Lock, GitBranch, Terminal, Rocket } from 'lucide-react';
+import { FolderOpen, ScrollText, Play, LayoutDashboard, Lock, GitBranch, Terminal, Rocket, Database } from 'lucide-react';
 import { toast } from 'sonner';
 
 interface ProjectWorkspaceProps {
@@ -84,6 +85,10 @@ export const ProjectWorkspace: React.FC<ProjectWorkspaceProps> = ({ project, onC
                                     <Terminal className="w-3.5 h-3.5" />
                                     Processes
                                 </TabsTrigger>
+                                <TabsTrigger value="database" className="gap-2">
+                                    <Database className="w-3.5 h-3.5" />
+                                    Databases
+                                </TabsTrigger>
                             </TabsList>
                         </div>
                         
@@ -138,6 +143,12 @@ export const ProjectWorkspace: React.FC<ProjectWorkspaceProps> = ({ project, onC
                             <div className={activeTab === 'processes' ? 'h-full' : 'hidden h-full'}>
                                 {activeTab === 'processes' && (
                                     <ProcessManager path={project.path} projectId={project.id} />
+                                )}
+                            </div>
+
+                            <div className={activeTab === 'database' ? 'h-full' : 'hidden h-full'}>
+                                {activeTab === 'database' && (
+                                    <DatabasePanel projectId={project.id} />
                                 )}
                             </div>
                         </div>

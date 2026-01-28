@@ -64,3 +64,13 @@ export interface GitStatus {
     behind: number;
     remote_url?: string;
 }
+
+export interface ProjectConnection {
+    id: string;
+    project_id: string;
+    name: string;
+    kind: 'postgres' | 'mysql' | 'sqlite';
+    details: string; // JSON string
+    created_at: string;
+    updated_at: string;
+}
