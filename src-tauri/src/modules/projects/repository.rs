@@ -240,15 +240,17 @@ impl ProjectRepository {
     }
 
     // Links
-    pub async fn create_link(&self, project_id: String, title: String, url: String, icon: Option<String>) -> Result<ProjectLink> {
+    pub async fn create_link(&self, project_id: String, title: String, url: String, icon: Option<String>, kind: String, working_directory: Option<String>) -> Result<ProjectLink> {
         let id = Uuid::new_v4().to_string();
 
-        sqlx::query("INSERT INTO project_links (id, project_id, title, url, icon) VALUES (?, ?, ?, ?, ?)")
+        sqlx::query("INSERT INTO project_links (id, project_id, title, url, icon, kind, working_directory) VALUES (?, ?, ?, ?, ?, ?, ?)")
             .bind(&id)
             .bind(&project_id)
             .bind(&title)
             .bind(&url)
             .bind(&icon)
+            .bind(&kind)
+            .bind(&working_directory)
             .execute(&self.pool)
             .await?;
 
@@ -258,12 +260,14 @@ impl ProjectRepository {
             title,
             url,
             icon,
+            kind,
+            working_directory,
             created_at: String::new(),
         })
     }
 
     pub async fn get_project_links(&self, project_id: &str) -> Result<Vec<ProjectLink>> {
-        let links = sqlx::query_as::<_, ProjectLink>("SELECT id, project_id, title, url, icon, created_at FROM project_links WHERE project_id = ? ORDER BY created_at ASC")
+        let links = sqlx::query_as::<_, ProjectLink>("SELECT id, project_id, title, url, icon, kind, working_directory, created_at FROM project_links WHERE project_id = ? ORDER BY created_at ASC")
             .bind(project_id)
             .fetch_all(&self.pool)
             .await?;

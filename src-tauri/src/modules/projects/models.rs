@@ -74,5 +74,8 @@ pub struct ProjectLink {
     pub url: String,
     pub icon: Option<String>,
     #[sqlx(default)]
+    pub kind: String, // 'url' or 'command'
+    pub working_directory: Option<String>,
+    #[sqlx(default)]
     pub created_at: String,
 }

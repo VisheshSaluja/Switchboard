@@ -130,8 +130,8 @@ impl ProjectService {
     }
 
     // Links
-    pub async fn create_link(&self, project_id: String, title: String, url: String, icon: Option<String>) -> Result<ProjectLink> {
-        self.repo.create_link(project_id, title, url, icon).await
+    pub async fn create_link(&self, project_id: String, title: String, url: String, icon: Option<String>, kind: String, working_directory: Option<String>) -> Result<ProjectLink> {
+        self.repo.create_link(project_id, title, url, icon, kind, working_directory).await
     }
 
     pub async fn get_project_links(&self, project_id: &str) -> Result<Vec<ProjectLink>> {

@@ -280,10 +280,12 @@ pub async fn add_project_link(
     project_id: String,
     title: String,
     url: String,
-    icon: Option<String>
+    icon: Option<String>,
+    kind: String,
+    working_directory: Option<String>
 ) -> Result<crate::modules::projects::models::ProjectLink, String> {
     let service = ProjectService::new(pool.inner().clone());
-    service.create_link(project_id, title, url, icon)
+    service.create_link(project_id, title, url, icon, kind, working_directory)
         .await
         .map_err(|e| e.to_string())
 }

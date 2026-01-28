@@ -8,8 +8,9 @@ import { SnippetsPanel } from './SnippetsPanel';
 import { NotesPanel } from './NotesPanel';
 import { ScriptRunner } from './ScriptRunner';
 import { ProcessManager } from './ProcessManager';
+import { LaunchpadPanel } from './LaunchpadPanel';
 import type { Project } from '../../types';
-import { FolderOpen, ScrollText, Play, LayoutDashboard, Lock, GitBranch, Terminal } from 'lucide-react';
+import { FolderOpen, ScrollText, Play, LayoutDashboard, Lock, GitBranch, Terminal, Rocket } from 'lucide-react';
 import { toast } from 'sonner';
 
 interface ProjectWorkspaceProps {
@@ -55,6 +56,10 @@ export const ProjectWorkspace: React.FC<ProjectWorkspaceProps> = ({ project, onC
                                     <LayoutDashboard className="w-3.5 h-3.5" />
                                     Overview
                                 </TabsTrigger>
+                                <TabsTrigger value="launchpad" className="gap-2">
+                                    <Rocket className="w-3.5 h-3.5" />
+                                    Launchpad
+                                </TabsTrigger>
                                 <TabsTrigger value="scripts" className="gap-2">
                                     <Play className="w-3.5 h-3.5" />
                                     Scripts
@@ -87,6 +92,12 @@ export const ProjectWorkspace: React.FC<ProjectWorkspaceProps> = ({ project, onC
                                 <OverviewPanel project={project} onNavigate={setActiveTab} />
                             )}
                             
+                            <div className={activeTab === 'launchpad' ? 'h-full' : 'hidden h-full'}>
+                                {activeTab === 'launchpad' && (
+                                    <LaunchpadPanel projectId={project.id} projectPath={project.path} />
+                                )}
+                            </div>
+
                             <div className={activeTab === 'scripts' ? 'h-full' : 'hidden h-full'}>
                                 {activeTab === 'scripts' && (
                                     <ScriptRunner path={project.path} onNavigate={setActiveTab} />
