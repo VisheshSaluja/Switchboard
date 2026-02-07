@@ -24,6 +24,28 @@ A rich-text editor tailored for developers.
 -   **Snippets Library**: A dedicated library for storing reusable code snippets or commands.
 -   **Quick Stats**: Overview of your project's language distribution and activity.
 
+## Installation & Testing (Alpha)
+
+Switchboard is currently in alpha testing. If you do not have an Apple Developer account, you may encounter security warnings when trying to run the app.
+
+### Download
+Go to the [Releases](https://github.com/VisheshSaluja/Switchboard/releases) page and download the latest `.dmg` for macOS (or `.msi`/`.exe` for Windows).
+
+### ⚠️ macOS Troubleshooting ("App is damaged")
+Since this app is not yet signed with an Apple Developer Certificate, you might see a "Switchboard is damaged and can't be opened" error. Currently, to bypass Apple's security check for unsigned apps, follow these steps:
+
+**Option 1: Right-Click Open**
+1.  Right-click the app in your Applications folder.
+2.  Select **Open**.
+3.  Click **Open** in the confirmation dialog.
+
+**Option 2: Terminal Command (If Option 1 fails)**
+Run this command in your terminal to remove the quarantine flag:
+```bash
+xattr -cr /Applications/Switchboard.app
+```
+(Replace `/Applications/Switchboard.app` with the actual path if you installed it elsewhere).
+
 ## Tech Stack
 
 Building a high-performance desktop app requires a robust stack. Switchboard is built on:
@@ -32,7 +54,7 @@ Building a high-performance desktop app requires a robust stack. Switchboard is 
 -   **Framework**: [React 19](https://react.dev/) + [TypeScript](https://www.typescriptlang.org/)
 -   **Build Tool**: [Vite](https://vitejs.dev/)
 -   **Styling**: [Tailwind CSS v4](https://tailwindcss.com/)
--   **UI Components**: [Shadcn/UI](https://ui.shadcn.com/) + [Radix UI](https://www.radix-ui.com/)
+-   **UI Components**: [Shadcn/UI](https://ui.shadcn.com/) + [Radix UI](https://www.radix-ui.com/) (using `react-resizable-panels`)
 -   **Icons**: [Lucide React](https://lucide.dev/)
 -   **Terminal**: [xterm.js](https://xtermjs.org/)
 -   **Editor**: [TipTap](https://tiptap.dev/)
@@ -48,6 +70,20 @@ Building a high-performance desktop app requires a robust stack. Switchboard is 
 ## Architecture
 
 Switchboard follows a **local-first** architecture.
--   All metadata (projects, notes, snippets, settings) is stored locally in an SQLite database (`~/.switchboard/db.sqlite`).
+-   All metadata (projects, notes, snippets, settings) is stored locally in an SQLite database.
 -   It interacts directly with your filesystem to run commands and manage git repositories.
 -   No cloud dependency—your data stays on your machine.
+
+## Development
+
+To run Switchboard locally:
+
+1.  **Prerequisites**: Ensure you have Node.js, Rust, and Tauri prerequisites installed.
+2.  **Install Dependencies**:
+    ```bash
+    npm install
+    ```
+3.  **Run Development Server**:
+    ```bash
+    npm run tauri dev
+    ```
